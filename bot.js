@@ -43,9 +43,9 @@ bot.on('message', function (user, userID, channelID, message, evt)
         if( firstCmd.toLowerCase() === '~help')
         {
             var msg = '**' + user + ' has queried the cosmos.**\nI am Un-Arenjii, the White God of Progression\nI am still in development but I still have a few tricks up my sleeve!\n';
-            msg += '`~dof`: will roll a Die of Fate. adding ` +#` and/or ` -#` can change the result of the roll.\n';
-            msg += '`~b#`, `~g#`, `~w#` will roll a pool of `#` black, grey or white dice respectively. adding a `!` after # will make the roll open ended.\n    Adding ` ob#` anywhere after will set the obstacle of the task and allow me to tell you the difficulty of the test.\n';
-            msg += 'please PM Saelvarath if you find any bugs or have other suggestions!'
+            msg += '`~dof`: Roll a Die of Fate.\n\t` +#` adds `#` [1-6] to the result of the roll.\n\t` -#` subtracts `#` [1-6] to the result of the roll.\n';
+            msg += '`~b#`, `~g#`, `~w#` rolls a pool of `#` [0-99] black, grey or white dice respectively. adding a `!` after `#` will make the roll open ended.\n\t` ob#` set the base obstacle of the task and allows me to tell you the difficulty of the test.\n\t` as#` will roll special Astrology FoRK dice `#` is optional, ` as` automatically rolls 1 die but will roll 2 if `#` is anything other than `0` or `1`'
+            msg += '\n\nPlease PM Saelvarath if you find any bugs or have other suggestions!'
 
             bot.sendMessage(
                 {
@@ -78,7 +78,11 @@ bot.on('message', function (user, userID, channelID, message, evt)
 
             var DoF = roll();
             
-            var msg = user + ' rolled a Die of Fate!\n[' + ( DoF + bonus ) + ']';
+            var msg = user + ' rolled a Die of Fate'
+            if ( bonus > 0 ) { msg += ' +' + bonus; }
+            else if ( bonus < 0 ) { msg += ' ' + bonus; }
+            
+            msg += '!\n[' + ( DoF + bonus ) + ']';
 
             bot.sendMessage(
                 {
@@ -111,29 +115,35 @@ bot.on('message', function (user, userID, channelID, message, evt)
 
                 var flag = TestPattern.exec( token.toLowerCase() );
                 
-                switch( flag[1] )
+                if ( flag )
                 {
-                    /*case 'ar':  //artha
-                    case 'as':  //astrology
-                    case 'bl':  //beginner's Luck
-                    case 'hp':  //help dice*/
-                    case 'ob':  //base obstacle
-                        obstacle = flag[2];
-                        break;
-                    /*case 'oe':  //open ended
-                    case 'ox':  //base Obstacle multiplier
-                    case 'o+'   //obstacle addition
-                    case 'o-'   //obstacle subtraction
-                    case 'vs':  //this is a VS test?
-                    case '+':
-                    case '-':*/
+                    switch( flag[1] )
+                    {
+                        //case 'ar':  //artha
+                        case 'as':  //astrology
+                            astroDice.push( 0 );
+                            if( flag[2] >= 2 ) { astroDice.push( 0 ); }
+                            break;
+                       /* case 'bl':  //beginner's Luck
+                        case 'hp':  //help dice*/
+                        case 'ob':  //base obstacle
+                            obstacle = flag[2];
+                            break;
+                        /*case 'oe':  //open ended
+                        case 'ox':  //base Obstacle multiplier
+                        case 'o+'   //obstacle addition
+                        case 'o-'   //obstacle subtraction
+                        case 'vs':  //this is a VS test?*/
+                        case '+':
+                        case '-':
+                    }
                 }
             });
 
             totalRolled = Number.parseInt(baseRolled) + arthaDice.length + helperDice.length + astroDice.length;
             var msg = user + ' rolled ' + totalRolled;
 
-    //shade 
+        //shade 
             switch( firstExp[1].toLowerCase() ) 
             {
                 case 'b':
@@ -151,9 +161,43 @@ bot.on('message', function (user, userID, channelID, message, evt)
             }
 
             isOpenEnded ? msg += 'Open Ended dice.\n' : msg += 'shaded dice.\n';
+
+        //roll astrology dice
+            for( a = 0; a < astroDice.length; a++ )
+            {
+                var astRoll = [roll()];
+
+                successes += astRoll[a] >= shade;
+
+                if( astRoll.slice(-1) == 1 )
+ 	            {
+                    var r = roll();
+                    successes -= r < shade;
+                    astRoll.push( r );
+                }
+                else
+                {
+                    while( astRoll.slice(-1) == 6 )
+                    {
+                        var r = roll();
+                        successes += r >= shade;
+                        astRoll.push( r );
+                    }
+                }
+                
+                astroDice[a] = astRoll;
+            }
+
+            if( astroDice.length )
+            {
+                msg += 'The Stars are ';
+                successes >0 ? msg += 'right' : msg += 'wrong';
+                msg += ' for ' + user + '. their fate gives them ' + successes + ' success this roll\nAstro Dice: [ ' + astroDice.toString() + ' ]\n';
+
+            }
         
         //Roll base dice 
-            for( d = 0; d < baseRolled; d++)
+            for( d = 0; d < baseRolled; d++ )
             {
                 var r = roll();
 
@@ -167,10 +211,11 @@ bot.on('message', function (user, userID, channelID, message, evt)
 
         //roll help dice
 
-        //roll astrology dice
-
-            msg += '[' + dice.toString() + ']\n'
-            
+        if( dice.length )
+        {
+            msg += 'Base dice: [ ' + dice.toString() + ' ] \n'
+        }
+           
         //determine test difficulty
             
             if( obstacle > 0 )
