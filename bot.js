@@ -1,10 +1,10 @@
-var Discord = require('discord.io');
-var logger = require('winston');
-var auth = require('./auth.json');
+var Discord = require( 'discord.io' );
+var logger = require( 'winston' );
+var auth = require( './auth.json' );
 
 // Configure logger settings
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
+logger.remove( logger.transports.Console );
+logger.add( logger.transports.Console, {
     colorize: true
 });
 logger.level = 'debug';
@@ -18,29 +18,30 @@ var bot = new Discord.Client({
 /*
 Challenging = # of dice rolled +1
 Difficult = # of dice rolled and below but above RoutineChallenge
+if diceRolled > routineTest.length us use diceRolled-3?
 */
-var routineTest = [1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 14, 15];
+var routineTest = [1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
 
-bot.on('ready', function (evt) {
-    logger.info('Connected');
-    logger.info('Logged in as: ');
-    logger.info(bot.username + ' - (' + bot.id + ')');
+bot.on( 'ready', function (evt) {
+    logger.info( 'Connected' );
+    logger.info( 'Logged in as: ' );
+    logger.info( bot.username + ' - (' + bot.id + ')' );
 });
 
-bot.on('message', function (user, userID, channelID, message, evt) 
+bot.on( 'message', function ( user, userID, channelID, message, evt ) 
 {
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`
-    if ( message.slice(0, 1) === '~' && message.length > 1 ) 
+    if ( message.slice( 0, 1 ) === '~' && message.length > 1 ) 
     {
-        var args = message.split(' ');
+        var args = message.split( ' ' );
         var firstCmd = args[0];
 
-        var rollPattern = RegExp('~([b|g|w])([0-9]{1,2})(!?)', 'i');
-        var TestPattern = RegExp('([a-z]{1,2})([0-9]{0,2})', 'i');
+        var rollPattern = RegExp( '~([b|g|w])([0-9]{1,2})(!?)', 'i' );
+        var TestPattern = RegExp( '([a-z]{1,2})([0-9]{0,2})', 'i' );
 
     //Help
-        if( firstCmd.toLowerCase() === '~help')
+        if ( firstCmd.toLowerCase() === '~help' )
         {
             var msg = '**' + user + ' has queried the cosmos.**\nI am Un-Arenjii, the White God of Progression.\nI am still in development but I still have a few tricks up my sleeve!';
            
@@ -74,14 +75,14 @@ bot.on('message', function (user, userID, channelID, message, evt)
         else if ( firstCmd === '~dof' )
         {
             var bonus = 0;
-            var DoFPattern = RegExp('([+|-])([1-6])', 'i');
+            var DoFPattern = RegExp( '([+|-])([1-6])', 'i' );
 
             args.forEach( token => {
                 var flag = DoFPattern.exec( token );
 
-                if( flag )
+                if ( flag )
                 {
-                    switch( flag[1] )
+                    switch ( flag[1] )
                     {
                         case '+':
                             bonus += Number( flag[2] );
@@ -119,13 +120,69 @@ bot.on('message', function (user, userID, channelID, message, evt)
     //Test Difficulty calculator
         else if ( firstCmd.toLowerCase() === '~rdc' )
         {
-            bot.sendMessage(
+            if ( args[2] ) 
+            {
+                var d = Number.parseInt( args[1] );
+                var o = Number.parseInt( args[2] );
+                var msg = '';
+
+                if ( typeof o != 'number' || typeof d != 'number' )
                 {
-                    to: channelID,
-                    message: 'Read the ~help didja? Did you see the part where this command was unimplemented?'
-                });
+                    bot.sendMessage(
+                        {
+                            to: channelID,
+                            message: 'those are not valid numbers.' // + typeof args[1] + ', ' + typeof args[2] 
+                        });
+                }
+                else
+                {
+                    if ( d > routineTest.length )
+                    {
+                        msg = 'Whoa there friend... That\'s an awful lot of dice you\'re slinging there...\n What do you think you are playing? Shadowrun? *Exalted?*';
+
+                        bot.sendMessage(
+                            {
+                                to: channelID,
+                                message: msg
+                            });
+                    }
+                    else if ( o > 0 )
+                    {
+                        msg = d + 'D rolled Versus an Ob of ' + o + '?\nWhy, that would be a ';
+
+                        if ( o > d )
+                        {
+                            msg += 'Challenging test!';
+                        }
+                        else if ( o > routineTest[d] )
+                        {
+                            msg += 'Difficult test!';
+                        }
+                        else
+                        {
+                            msg += 'Routine test.';
+                        }
+
+                        bot.sendMessage(
+                            {
+                                to: channelID,
+                                message: msg
+                            });
+                    }
+                }
+            }
+            else
+            {
+                bot.sendMessage(
+                    {
+                        to: channelID,
+                        message: 'I need 2 numbers to compare. first, the number of dice rolled; second the Obstacle of the test.'
+                    });
+            }
+
+            
         }
-        else if( firstCmd.toLowerCase() === '~vs' )
+        else if ( firstCmd.toLowerCase() === '~vs' )
         {
             bot.sendMessage(
                 {
@@ -134,7 +191,7 @@ bot.on('message', function (user, userID, channelID, message, evt)
                 });
         }
     //Standard Test
-        else if( rollPattern.test( firstCmd ) )
+        else if ( rollPattern.test( firstCmd ) )
         {
 
             var firstExp = rollPattern.exec( firstCmd );
@@ -157,21 +214,21 @@ bot.on('message', function (user, userID, channelID, message, evt)
             var beginnersLuck = false;              //do you actually have the right skill for the job?
 
         //read and interpret each token
-            args.forEach(token => {
+            args.forEach( token => {
 
                 var flag = TestPattern.exec( token.toLowerCase() );
                 
                 if ( flag )
                 {
-                    switch( flag[1] )
+                    switch ( flag[1] )
                     {
                         case 'as':  //astrology
-                            if( flag[2] != 0 )
+                            if ( flag[2] != 0 )
                             {
                                 astroDice.push( 0 );
                                 nonArtha++;
 
-                                if( flag[2] >= 2 )
+                                if ( flag[2] >= 2 )
                                 {
                                     astroDice.push( 0 );
                                     nonArtha++;
@@ -217,7 +274,7 @@ bot.on('message', function (user, userID, channelID, message, evt)
             var msg = user + ' rolled ' + totalRolled;
 
         //determine shade 
-            switch( firstExp[1].toLowerCase() ) 
+            switch ( firstExp[1].toLowerCase() ) 
             {
                 case 'b':
                     shade = 4;
@@ -238,13 +295,13 @@ bot.on('message', function (user, userID, channelID, message, evt)
             obstacle > 0 ?  msg += ' against an Ob of ' + obstacle + '.' : msg += '.';
 
         //roll astrology dice
-            for( a = 0; a < astroDice.length; a++ )
+            for ( a = 0; a < astroDice.length; a++ )
             {
                 var astRoll = [roll()];
 
                 successes += astRoll[a] >= shade;
 
-                if( astRoll.slice(-1) == 1 )
+                if ( astRoll.slice(-1) == 1 )
  	            {
                     var r = roll();
                     successes -= r < shade;
@@ -263,7 +320,8 @@ bot.on('message', function (user, userID, channelID, message, evt)
                 astroDice[a] = astRoll;
             }
 
-            if( astroDice.length )
+        //tally & output astrology results
+            if ( astroDice.length )
             {
                 msg += '\nThe Stars are ';
                 successes >0 ? msg += 'right' : msg += 'wrong';
@@ -272,11 +330,11 @@ bot.on('message', function (user, userID, channelID, message, evt)
             }
 
         //roll helper dice
-            for( h = 0; h < helperDice.length; h++ )
+            for ( h = 0; h < helperDice.length; h++ )
             {
                 var helpRoll = [];
             
-                for( h2 = 0; h2 < helperDice[h].length; h2++ )
+                for ( h2 = 0; h2 < helperDice[h].length; h2++ )
                 {
                     var r = roll();
                     successes += r >= shade;
@@ -294,19 +352,19 @@ bot.on('message', function (user, userID, channelID, message, evt)
             }
 
         //determine helper test difficulty
-            for( helper = 0; helper < helperDice.length; helper++) 
+            for ( helper = 0; helper < helperDice.length; helper++ ) 
             {
                 msg += '\nHelper' + helper + ' added [ ' + helperDice[helper].toString() + ' ] to the roll';
                 
-                if( obstacle > 0 )
+                if ( obstacle > 0 )
                 {
                     msg += ' and earns a ';
 
-                    if( obstacle > helperExponent[helper] )
+                    if ( obstacle > helperExponent[helper] )
                     {
                         msg += 'Challenging test!';
                     }
-                    else if( obstacle > routineTest[helperExponent[helper]] )
+                    else if ( obstacle > routineTest[helperExponent[helper]] )
                     {
                         msg += 'Difficult test!';
                     }
@@ -319,33 +377,33 @@ bot.on('message', function (user, userID, channelID, message, evt)
                 { msg += '.'; }
             }
         //Roll base dice 
-            for( d = 0; d < Number( baseRolled ) + Number( arthaDice ); d++ )
+            for ( d = 0; d < Number( baseRolled ) + Number( arthaDice ); d++ )
             {
                 var r = roll();
 
-                if( r >= shade ) { successes++; }
-                if( isOpenEnded && r === 6 ) { d--; }
+                if ( r >= shade ) { successes++; }
+                if ( isOpenEnded && r === 6 ) { d--; }
 
                 dice.push( r );
             }
 
-            if( dice.length )
+            if ( dice.length )
             {
                 msg += '\nBase dice: [ ' + dice.toString() + ' ] ';
                 arthaDice > 0 ? msg += arthaDice + ' of which were gaing by spending Artha' : 0;
             }
            
         //determine Main test difficulty
-            if( obstacle > 0 )
+            if ( obstacle > 0 )
             {
                 successes >= obstacle ? msg += '\nThats a success of ' + ( successes - obstacle ) + ' and they get to mark off a ' : msg += '\nTraitorous dice! Thats a *failure*...\nAt least they get to mark off a ';
             
                 //+ this will have to change when Beginner's Luck, Ob*2, Ob*4 are implemented
-                if( obstacle > baseRolled + nonArtha )
+                if ( obstacle > baseRolled + nonArtha )
                 {
                     msg += 'Challenging test!';
                 }
-                else if( obstacle > routineTest[Number( baseRolled ) + Number( nonArtha )] )
+                else if ( obstacle > routineTest[Number( baseRolled ) + Number( nonArtha )] )
                 {
                     msg += 'Difficult test!';
                 }
