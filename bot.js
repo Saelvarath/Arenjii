@@ -4,38 +4,38 @@ var auth = require( './auth.json' );
 
 class diePool 
 {
-//Constructor
+  //Constructor
     constructor()
     {
-        this.owner = '';            //Who rolled the dice
-
-        this.baseRolled = 0;        //BASE number of dice rolled, Exponent of the roll.
-        this.totalRolled = 0;       //how many dice ultimately end up being rolled (before rerolls)
-        this.dice = [];             //array of dice results
         this.arthaDice = 0;         //number of dice added through spending Artha
-        this.helperDice = [];       //how much your companions 'helped' you
-        this.helperExponent = [];   //the exponent of your helpers
-        this.astroDice = [];        //results of astrological FoRKs/Help
+        this.astroDice = 0;         //number of dice added through Astrology FoRK
+        this.astroPool = [];        //results of astrological FoRKs/Help
         this.astroResult = 0;       //Successes gained or lost through Astrology
-
-        this.nonArtha = 0;          //the number of non-artha dice added to the roll;
-
-        this.successes = 0;         //the number of successes gained
-        this.obstacle = 0;          //BASE obstacle of the roll
-        this.ObMultiplier = 1;      //for all you double Ob needs.
-        this.shade = 4;             //shade of the roll, 4 = black, 3 = grey, 2 = white
-        
-        this.isOpenEnded = false;   //do dice explode?
         this.beginnersLuck = false; //do you actually have the right skill for the job?
+        this.basePool = [];         //array of dice results, includes FoRKs, Artha Dice, Advantage Dice
+        this.exponent = 0;          //BASE number of dice rolled, Exponent of the roll.
         this.fated = false;         //if a Fate point has been spent on this roll
+        this.helperDice = 0;        //number of dice added by helpers
+        this.helperExponent = [];   //the exponent of your helpers
+        this.helperPool = [];       //how much your companions 'helped' you
+        this.inspired = false;      //has this roll recieved Divine Inspiration?
+        this.isOpenEnded = false;   //do dice explode?
+        this.nonArtha = 0;          //the number of non-artha dice added to the roll
+        this.ObAddition = 0;        //added to Base Obstacle after it's multiplied
+        this.ObMultiplier = 1;      //for all you double Ob needs.
+        this.obstacle = 0;          //BASE obstacle of the roll
+        this.owner = '';            //Who rolled the dice
+        this.shade = 4;             //shade of the roll, 4 = black, 3 = grey, 2 = white
+        this.successes = 0;         //the number of successes gained through rolls
+        this.totalRolled = 0;       //how many dice ultimately end up being rolled (before rerolls)
     }
 
-//DiePool toString
+  //DiePool.printPool()
     printPool()
     {
         let msg = this.owner + ' rolled ' + this.totalRolled;
 
-        //determine shade 
+          //determine shade 
             switch ( this.shade ) 
             {
                 case 4:
@@ -51,46 +51,73 @@ class diePool
 
             this.isOpenEnded ? msg += 'Open Ended dice' : msg += 'shaded dice';
 
-            this.obstacle > 0 ?  msg += ' against an Ob of ' + this.obstacle + '.' : msg += '.';
+            this.beginnersLuck ? msg += ', Beginner\'s Luck,' : 0 ;
 
-        //tally & output astrology results
-            if ( this.astroDice.length )
+            this.obstacle > 0 ?  msg += ' against an Ob of ' + ( Number( this.obstacle ) * Number( this.ObMultiplier ) + Number( this.ObAddition ) ) : 0;
+            
+            this.ObMultiplier > 1 && this.obstacle > 0 ? msg += '[' + this.obstacle + '*' + this.ObMultiplier + '+' + this.ObAddition + '.' : msg += '.';
+
+          //tally & output astrology results
+            if ( this.astroDice > 0 )
             {
                 msg += '\nThe Stars were ';
                 this.astroResult >0 ? msg += 'right' : msg += 'wrong';
-                msg += ' for ' + this.owner + '. Their fate gives them ' + this.astroResult + ' success this roll\nAstro Dice: [' + this.astroDice.toString() + ']';
+                msg += ' for ' + this.owner + '. Their fate gives them ' + this.astroResult + ' success this roll\nAstro Dice: ' + diceSugar( this.astroPool, this.shade, 2 );
+                //-msg += '\n' + this.astroPool.toString();
             }
 
-        //determine helper test difficulty
-            for ( let helper = 0; helper < this.helperDice.length; helper++ ) 
+          //determine helper test difficulty
+            for ( let helper = 0; helper < this.helperPool.length; helper++ ) 
             {
-                msg += '\nHelper' + helper + ' added [' + this.helperDice[helper].toString() + '] to the roll';
+                msg += '\nHelper' + helper + ' added ' + diceSugar( this.helperPool[helper], this.shade, this.isOpenEnded ) + 'to the roll';
                 
                 if ( this.obstacle > 0 )
                 {
-                    msg += ' and earned a ' + RDC( this.helperExponent[helper], this.obstacle );
+                    msg += ' and earned a ' + RDC( this.helperExponent[helper], this.obstacle + this.ObAddition );
                 }
-                else 
-                { msg += '.'; }
+
+                msg += '.';
             }
-        //print base dice 
-            if ( this.dice.length )
+          //print base dice 
+            if ( this.basePool.length )
             {
-                msg += '\nBase dice: [' + this.dice.toString() + '] ';
-                this.arthaDice > 0 ? msg += this.arthaDice + ' of which were gaing by spending Artha' : 0;
+                msg += '\nBase dice: ' + diceSugar( this.basePool, this.shade, this.isOpenEnded );
+                this.arthaDice > 0 ? msg += this.arthaDice + ' of which were gained by spending Artha' : 0;
             }
            
-        //determine Main test difficulty
+          //determine Main test difficulty
             let totesSuccessess = this.successes + this.astroResult;
+            let totesObstacle = this.obstacle * this.ObMultiplier + this.ObAddition;
+
+            //?Ob0 with an obstacleMultiplier is a graduated test with different rules
 
             if ( this.obstacle > 0 )
             {
-                totesSuccessess >= this.obstacle ? msg += '\nThats a success of ' + ( totesSuccessess - this.obstacle ) + ' and they got to mark off a ' : msg += '\nTraitorous dice! Thats a *failure*...\nAt least they got to mark off a ';
-                msg += RDC( Number( this.baseRolled ) + Number( this.nonArtha ), this.obstacle );
+                totesSuccessess >= totesObstacle ? msg += '\nThats a success with a margin of ' + ( totesSuccessess - totesObstacle ) + ' and they got to mark off a ' : msg += '\nTraitorous dice! Thats a *failure*...\nAt least they got to mark off a ';
+
+                let bl = RDC( Number( this.exponent ) + Number( this.nonArtha ) + Number( this.astroDice ) + Number( this.helperDice ), Number( this.obstacle ) + Number( this.ObAddition ) );
+
+                if ( this.beginnersLuck )
+                {
+                    bl  === 'Routine test' ? msg += 'test towards learning a new skill!' : msg += bl + ' towards advancing their stat!';
+                }
+                else
+                {
+                    msg += bl;
+                }
             }
             else
             {
-                totesSuccessess > 0 ? msg += '\nThats ' + totesSuccessess + ' succes(es)!' : msg += '\nNo successes? looks like things are about to get interesting!';
+                if ( this.ObMultiplier > 1 )
+                {
+                    let degreeOfSuccess = Math.floor( ( this.successes - this.ObAddition ) / this.ObMultiplier );
+                    msg += '\nThat\'s ' + totesSuccessess + ' in total and ' + degreeOfSuccess + ' degrees of success on a graduated test.';
+                }
+                else
+                {
+                    totesSuccessess > 0 ? msg += '\nThats ' + totesSuccessess + ' succes(es)!' : msg += '\nNo successes? looks like things are about to get interesting!';
+                }
+                
             }
 
             return msg;
@@ -131,7 +158,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
     // It will listen for messages that will start with `~`
     if ( message.slice( 0, 1 ) === '~' && message.length > 1 ) 
     {
-    //RegEx Setup
+      //RegEx Setup
         let args = message.split( ' ' );
         let firstCmd = args[0];
 
@@ -140,12 +167,12 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
         const rollPattern = RegExp( '~([b|g|w])([0-9]{1,2})(!?)', 'i' );
         const testPattern = RegExp( '([a-z\+]{1,2})([0-9]{0,2})', 'i' );
 
-    //Help
+      //Help
         if ( firstCmd.toLowerCase() === '~help' )
         {
             let msg = '**' + user + ' has queried the cosmos.**';
 
-        //Flagged
+          //Flagged
             if ( args[1] )
             {
                 switch ( args[1] )
@@ -184,21 +211,21 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                           msg += '\n\tWhen using `di` extra dice should be added with `ad`, `as` `fk`, `he` and `bn`.';
                           msg += '\n\t`!` *optional*; adding this changes the roll to be Open-Ended';
                         msg += '\nExtra Tags:';
+                          msg += '\n\t` ad#` __Advantage__ Adds `#` dice to the roll, unaffected by dice multipliers';
                           msg += '\n\t` as ` __Astrology, FoRK__: Adds special Astrology FoRK dice. Rolls 1 die by default. `as2` will roll 2';
-                          msg += '\n\t` ad#` __Advantage__ *Unimplemented* adds `#` dice to the roll, unaffected by dice multipliers';
+                          msg += '\n\t` bl ` __Beginners\' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill';
                           msg += '\n\t` bn#` __Boon, Deeds Point__: Adds `#` [1-3] dice to the roll that do no affect difficulty. Unaffected by dice multipliers';
-                          msg += '\n\t` bl ` __Beginners\' Luck__: *Unimplemented* Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill';
-                          msg += '\n\t` di ` __Divine Inspiration__: *Unimplemented* Multiplies Exponent Dice by 2 and counts these extra dice as gained through Artha expenditure.';
-                          msg += '\n\t` ds#` __Disadvantage__: *Unimplemented* Adds `#` to the Base Obstacle, unaffected by Ob multipliers.';
-                          msg += '\n\t` fk#` __FoRK __: *Unimplemented* Adds `#` dice to the roll, unaffected by dice multipliers. See `as` to FoRK in Astrology';
+                          msg += '\n\t` di ` __Divine Inspiration__: Multiplies Exponent Dice by 2 and counts these extra dice as gained through Artha expenditure.';
+                          msg += '\n\t` ds#` __Disadvantage__: Adds `#` to the Base Obstacle, unaffected by Ob multipliers.';
+                          msg += '\n\t` fk#` __FoRK __: Functionally identical to `ad`. See `as` to FoRK in Astrology';
                           msg += '\n\t` he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10]. if an Obstacle is specified I can tell how difficult their test is';
                           msg += '\n\t` ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#` and returns the difficulty of the test. Obstacle multipliers only affect this number';
-                          msg += '\n\t` ox#` __Obstacle, Multiplier__: *Unimplemented* Multiplies the Base Obstacle of by `#`.';
+                          msg += '\n\t` ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle of by `#`.';
                           msg += '\n\t` vs ` __Versus Test__: *Unimplemented* Will flag Arenjii to compare this roll with the previous roll and declare a winner';
                         break;
                 }
             }
-        //No Flags
+          //No Flags
             else
             {
                 msg += '\nI am Arenjii, the White God of Progression.\nI am still in development but I still have a few tricks up my sleeve!';
@@ -217,20 +244,20 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                 msg += '\n\nPlease PM Saelvarath if you find any bugs or have other suggestions!';
             }
 
-        //output
+          //output
             bot.sendMessage(
                 {
                     to: channelID,
                     message: msg
                 });  
         }
-    //Die of Fate 
+      //Die of Fate 
         else if ( firstCmd === '~dof' )
         {
             let bonus = 0;
             const DoFPattern = RegExp( '([+|-])([1-6])', 'i' );
         
-        //Interpret Flags
+          //Interpret Flags
             args.forEach( token => 
             {
                 let flag = DoFPattern.exec( token );
@@ -248,10 +275,10 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     }
                 }             
             });
-        //Roll
+          //Roll
             let DoF = roll();
         
-        //Output    
+          //Output    
             let msg = user + ' rolled a Die of Fate';
             if ( bonus > 0 ) { msg += ' +' + bonus; }
             else if ( bonus < 0 ) { msg += ' ' + bonus; }
@@ -264,7 +291,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     message: msg
                 });
         }
-    //Inheritors Easter Egg
+      //Inheritors Easter Egg
         else if ( firstCmd === '~inheritors' )
         {
             bot.sendMessage(
@@ -273,7 +300,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     message: '\nThe king on the throne, alone one day,\nTook the words in his mouth and threw them away,\nFirst came the servants, the first of the seen,\nWho built him a house, and kept his hearth clean\nNext came the tall men of stone and cold fire,\nTo seek out all sinners and add to the pyre.\nThen came the beloved, the storied and told,\nThe first to lay claim to the cosmos of old.\nLast came the white ones of bones, teeth and eyes,\nWho swallow all truths and spit out only lies.'
                 });
         }
-    //Knights Easter Egg
+      //Knights Easter Egg
         else if ( firstCmd === '~knights')
         {
             bot.sendMessage(
@@ -283,14 +310,14 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
 
                 });
         }
-    //Luck; Fate point, retroactively make a roll Open-Ended or reroll one die
+      //Luck; Fate point, retroactively make a roll Open-Ended or reroll one die
         else if ( firstCmd.toLowerCase() === '~luck' || firstCmd.toLowerCase() === '~fate' )
         {
             let msg = '';
 
             if ( !prevPool.fated )
             {
-            //Roll is Open-Ended
+              //Roll is Open-Ended
                 if ( prevPool.isOpenEnded )
                 {
                     let traitor = 0;
@@ -299,8 +326,8 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     
                     //? check for a negatively expoded die in Astrology pool first?
 
-                //check exponent/Artha/FoRK/Advantage Pool
-                    prevPool.dice.forEach( ( die, index, collection ) => 
+                  //check exponent/Artha/FoRK/Advantage Pool
+                    prevPool.basePool.forEach( ( die, index, collection ) => 
                     {
                         if ( traitor === 0 && die < prevPool.shade )
                         {
@@ -311,8 +338,8 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                         }
                     });
 
-                //check Helper Pool
-                    prevPool.helperDice.forEach( helper => 
+                  //check Helper Pool
+                    prevPool.helperPool.forEach( helper => 
                     {
                         helper.forEach( ( die, index, collection ) => 
                         {
@@ -326,27 +353,27 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                         });
                     });
 
-                //no die to reroll
+                  //no die to reroll
                     if ( traitor === 0 )
                     {
                         msg += 'Why would you spend Artha on a perfectly good roll?'
                     }
-                //die rerolled
+                  //die rerolled
                     else
                     {
                         prevPool.fated = true;
                         reroll >= prevPool.shade ? msg += 'Traitorous ' + traitorType + ' die converted!\n' + traitor + ' => ' + reroll + '\nthat\'s +1 success for a total of ' + ++prevPool.successes : msg += 'Well, you tried...\nI rerolled a ' + traitor + ' from your ' + traitorType + ' dice but only got at ' + reroll;
                     }
                 }
-            //Roll Not Open-Ended
+              //Roll Not Open-Ended
                 else
                 {
                     let rerollBase = [];
                     let rerollHelp = [];
                     let r = 0;
 
-                //check exponent Pool (1Dim Array)
-                    prevPool.dice.slice().forEach( ( die, dI, dC ) => 
+                  //check exponent Pool (1Dim Array)
+                    prevPool.basePool.slice().forEach( ( die, dI, dC ) => 
                     {
                         if ( die === 6 )
                         {
@@ -355,17 +382,17 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                             {
                                 rerollBase.push( r );
                                 prevPool.successes += r >= prevPool.shade;
-                                prevPool.dice.splice( dI + rerollBase.length, 0, r );
+                                prevPool.basePool.splice( dI + rerollBase.length, 0, r );
                                 r = roll();
                             }
                             rerollBase.push( r );
                             prevPool.successes += r >= prevPool.shade;
-                            prevPool.dice.splice( dI + rerollBase.length, 0, r );
+                            prevPool.basePool.splice( dI + rerollBase.length, 0, r );
                         }
                     });
 
-                //check Helper Pool (2Dim Array)
-                    prevPool.helperDice.slice().forEach( ( helper, hI, hC ) => 
+                  //check Helper Pool (2Dim Array)
+                    prevPool.helperPool.slice().forEach( ( helper, hI, hC ) => 
                     {
                         rerollHelp.push( [] );
 
@@ -378,47 +405,47 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                                 {
                                     rerollHelp[hI].push( r );
                                     prevPool.successes += r >= prevPool.shade;
-                                    prevPool.helperDice[hI].splice( dI + rerollHelp[hI].length, 0, r );
+                                    prevPool.helperPool[hI].splice( dI + rerollHelp[hI].length, 0, r );
                                     r = roll();
                                 }
                                 rerollHelp[hI].push( r );
                                 prevPool.successes += r >= prevPool.shade;
-                                prevPool.helperDice[hI].splice( dI + rerollHelp[hI].length, 0, r );
+                                prevPool.helperPool[hI].splice( dI + rerollHelp[hI].length, 0, r );
                             }
                         });
                     });
 
-                    msg += 'reroll results: [' + rerollBase.toString() + ']';
+                    msg += 'reroll results: ' + diceSugar( rerollBase, prevPool.shade, prevPool.isOpenEnded );
 
                     rerollHelp.forEach( ( helper, hI, hC ) => 
                     {
                         if ( helper.length > 0 )
                         {
-                            msg += '\nhelper' + hI + '[' + helper.toString() + ']';
+                            msg += '\nhelper' + hI + ' ' + diceSugar( helper,  prevPool.shade, prevPool.isOpenEnded );
                         }
                     });
 
                 }
             }
-        //Fate point already spent
+          //Fate point already spent
             else
             {
                 msg = 'You\'ve already spent a Fate point on this roll';
             }
 
-        //Send message
+          //Send message
             bot.sendMessage(
                 {
                     to: channelID,
                     message: msg
                 });
         }
-    //+maybe Easter Egg
+      //+maybe Easter Egg
         /*else if ( firstCmd.toLowerCase() === '~maybe' )
         {
 
         }
-    //+Psalms Easter Egg
+      //+Psalms Easter Egg
         else if ( firstCmd.toLowerCase() === '~psalms' )
         {
             let msg = '';
@@ -446,50 +473,50 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     break;
             }
         }*/
-    //Test Difficulty calculator
+      //Test Difficulty calculator
         else if ( firstCmd.toLowerCase() === '~rdc' )
         {
+            //+add Ob addition/multiplication?
             let msg = '';
 
-        //has required arguments
+          //has required arguments
             if ( args[2] ) 
             {
                 let d = Number.parseInt( args[1] );
                 let o = Number.parseInt( args[2] );
 
-            //improper argument types
+              //improper argument types
                 if ( isNaN(o) || isNaN(d) )
                 {
                     msg += 'those are not valid numbers.';
                 }
-            //proper argument types
+              //proper argument types
                 else
                 {
-                //array index out of bounds prevention
+                  //array index out of bounds prevention
                     if ( d > routineTest.length )
                     {
                         msg += 'Whoa there friend... That\'s an awful lot of dice you\'re slinging there...\n What do you think you are playing? Shadowrun? *Exalted?*';
                     }
-                //negative dice rolled or Negative Ob
+                  //negative dice rolled or Negative Ob
                     else if ( o <= 0 || d < 0 )
                     {
                         msg += 'https://qph.fs.quoracdn.net/main-qimg-527daeca7d4b6d4ef11607e548f576dd-c';
                     }
-                //proper input
+                  //proper input
                     else if ( o > 0 )
                     {
-                        msg += d + 'D rolled Versus an Ob of ' + o + '?\nWhy, that would be a ';
-                        msg += RDC( d, o );
+                        msg += d + 'D rolled Versus an Ob of ' + o + '?\nWhy, that would be a ' + RDC( d, o ) + '!';
                     }
                 }
             }
-        //fewer than 2 arguments
+          //fewer than 2 arguments
             else
             {
                 msg += 'I need 2 numbers to compare. first, the number of dice rolled; second the Obstacle of the test.';
             }
 
-        //Output
+          //Output
             bot.sendMessage(
                 {
                     to: channelID,
@@ -498,16 +525,16 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
 
             
         }
-    //+Easter Egg
+      //+Easter Egg
         /*else if ( firstCmd.toLowerCase() === '~spasms' )
         {
 
         }*/
-    //areas of improvement
+      //areas of improvement
         else if ( firstCmd.toLowerCase() === '~test' )
         {
-            let msg = 'Murder the Gods and topple their thrones!\nIf they cannot bear the weight of your worship they are undeserving of Royalty.\nSo test your gods, beat them where they are weakest until they break.\nif they are worthy they will come back stronger.';
-            msg += '\n\nKnown weakenesses of the White God Arenjii are:\n- *calculating test difficulty*, Invoke `~rdc` and scrutinize the answers.\n-*astrology*, reading the stars is a fine art but Arenjii is having troubles if the fates are in your favour or not';
+            let msg = '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving of Royalty.\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
+            msg += '\n\nKnown weakenesses of the White God Arenjii are:\n-__Astrology__: reading the stars is a fine art but Arenjii is having troubles determining if the fates are in your favour or not\n-__Obstacle Math__: Several new verses to the prayer of rolling have been uncovered, invoke them with `ox#`, `ds#` and `bl`.\n-__Dice Math__: in additon the `ad#`, `fk#` and `di` verses have been unlocked, with so many new commands it may be possible to overwhelm him.';
 
             bot.sendMessage(
                 {
@@ -516,7 +543,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
 
                 });
         }
-    //-debugging VS tests
+      //-debugging VS tests
         else if ( firstCmd.toLowerCase() === '~vs' )
         {
             bot.sendMessage(
@@ -525,7 +552,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     message: 'prev roll = \n' + prevPool.printPool()
                 });
         }
-    //Yisun easter egg
+      //Yisun easter egg
         else if ( firstCmd.toLowerCase() === '~yisun' )
         {
             let msg = '';
@@ -560,7 +587,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     msg += 'YS ATUN VRAMA PRESH';
                     break;
             }
-        //output
+          //output
             bot.sendMessage(
                 {
                     to: channelID,
@@ -568,20 +595,20 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
 
                 });
         }
-    //Standard Test
+      //Standard Test
         else if ( rollPattern.test( firstCmd ) )
         {
-        //setup
+          //setup
             let firstExp = rollPattern.exec( firstCmd );
             
             var currPool = new diePool();
 
             currPool.owner = user;
-            currPool.baseRolled = firstExp[2];
-            currPool.totalRolled = currPool.baseRolled;
+            currPool.exponent = firstExp[2];
+            currPool.totalRolled = currPool.exponent;
             currPool.isOpenEnded = firstExp[3] === '!';
             
-        //read and interpret each token
+          //read and interpret each token
             args.forEach( token => 
             {
                 let flag = testPattern.exec( token.toLowerCase() );
@@ -590,44 +617,64 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                 {
                     switch ( flag[1] )
                     {
+                        case 'ad':  //advantage dice
+                            //+restrict to +2D
+                        case 'fk':  //FoRK dice
+                            currPool.nonArtha += flag[1];
+                            break;
                         case 'as':  //astrology
-                            if ( flag[2] != '0' )
+                            if ( flag[2] != '0' && currPool.astroDice == 0)
                             {
-                                currPool.astroDice.push( 0 );
-                                currPool.nonArtha++;
+                                //currPool.astroPool.push( 0 );
+                                currPool.astroDice++;
 
                                 if ( flag[2] >= 2 )
                                 {
-                                    currPool.astroDice.push( 0 );
-                                    currPool.nonArtha++;
+                                    //currPool.astroPool.push( 0 );
+                                    currPool.astroDice++;
                                 }
                             }
                             break;
-                     //+case 'bl':  //beginner's Luck
-                        case 'bn':  //Boon; Persona Point - +1D-3D to a roll 
-                            flag[2] > 3 ? currPool.arthaDice += 3 : currPool.arthaDice += flag[2];
+                        case 'bl':  //beginner's Luck
+                            if ( !currPool.beginnersLuck )
+                            {
+                                currPool.ObMultiplier *= 2;
+                                currPool.beginnersLuck = true;
+                            }
                             break;
-                     //+case 'di':  //Divine Inspiration; Deeds Point - doubles base Exponent
-                     //+case 'ds':   //Disadvantage; +1 Ob
+                        case 'bn':  //Boon; Persona Point - +1D-3D to a roll 
+                            //+ disable after 1 invocation
+                            flag[2] > 3 ? currPool.arthaDice += 3 : currPool.arthaDice += Number( flag[2] );
+                            break;
+                        case 'di':  //Divine Inspiration; Deeds Point - doubles base Exponen
+                            if ( !currPool.inspired )
+                            {
+                                currPool.arthaDice += currPool.exponent;
+                                currPool.inspired = true;
+                            }
+                            break;
+                        case 'ds':   //Disadvantage
+                            currPool.ObAddition += Number( flag[2] );
+                            break;
                         case 'he':  //helper dice*/
                             if ( flag[2] > 6 )
                             {
-                                currPool.helperDice.push( [0, 0] );
-                                currPool.nonArtha += 2;
+                                currPool.helperPool.push( [0, 0] );
+                                currPool.helperDice += 2;
                             } 
                             else
                             {
-                                currPool.helperDice.push( [0] ); 
-                                currPool.nonArtha++;
+                                currPool.helperPool.push( [0] ); 
+                                currPool.helperDice++;
                             } 
-
                             currPool.helperExponent.push( flag[2] );
                             break;
                         case 'ob':  //base obstacle
                             currPool.obstacle = flag[2];
                             break;
-                        /*case 'oe':  //open ended
-                        case 'ox':  //base Obstacle multiplier*/
+                        case 'ox':  //base Obstacle multiplier
+                            currPool.ObMultiplier *= flag[2];
+                            break;
                         case 'vs':  //this is a VS test?
                             isVS = true;
                             break;
@@ -635,10 +682,10 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                 }
             });
 
-        //Find total dice rolled
-            currPool.totalRolled = Number( currPool.baseRolled ) + Number( currPool.arthaDice ) + currPool.nonArtha;
+          //Find total dice rolled
+            currPool.totalRolled = Number( currPool.exponent ) + Number( currPool.arthaDice ) + Number( currPool.nonArtha ) + Number( currPool.astroDice ) + Number( currPool.helperDice );
 
-        //determine shade 
+          //determine shade 
             switch ( firstExp[1].toLowerCase() ) 
             {
                 case 'b':
@@ -652,38 +699,34 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     break;
             }
 
-        //roll astrology dice
-            for ( a = 0; a < currPool.astroDice.length; a++ )
+          //roll astrology dice
+          for ( a = 0; a < currPool.astroDice; a++ )
+          {
+            let astRoll = roll();
+            currPool.astroResult += astRoll >= currPool.shade;
+            currPool.astroPool.push( astRoll );
+            
+            while( astRoll === 6 )
             {
-                let astRoll = [roll()];
-
-                currPool.astroResult += astRoll[a] >= currPool.shade;
-
-                if ( astRoll.slice(-1) == 1 )
- 	            {
-                    let r = roll();
-                    currPool.astroResult -= r < currPool.shade;
-                    astRoll.push( r );
-                }
-                else
-                {
-                    while( astRoll.slice(-1) == 6 )
-                    {
-                        let r = roll();
-                        currPool.astroResult += r >= currPool.shade;
-                        astRoll.push( r );
-                    }
-                }
-                
-                currPool.astroDice[a] = astRoll;
+              astRoll = roll();
+              currPool.astroResult += astRoll >= currPool.shade;
+              currPool.astroPool.push( astRoll );
             }
+          
+            if ( astRoll === 1 )
+            {
+              astRoll = roll();
+              currPool.astroResult -= astRoll < currPool.shade;
+              currPool.astroPool.push( astRoll );
+            }
+          }
 
-        //roll helper dice
-            for ( h = 0; h < currPool.helperDice.length; h++ )
+          //roll helper dice
+            for ( h = 0; h < currPool.helperPool.length; h++ )
             {
                 let helpRoll = [];
             
-                for ( h2 = 0; h2 < currPool.helperDice[h].length; h2++ )
+                for ( h2 = 0; h2 < currPool.helperPool[h].length; h2++ )
                 {
                     let r = roll();
                     currPool.successes += r >= currPool.shade;
@@ -697,28 +740,28 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
                     }
                 }
 
-                currPool.helperDice[h] = helpRoll;
+                currPool.helperPool[h] = helpRoll;
             }
 
-        //Roll Exponent dice 
-            for ( d = 0; d < Number( currPool.baseRolled ) + Number( currPool.arthaDice ); d++ )
+          //Roll Exponent dice 
+            for ( d = 0; d < Number( currPool.exponent ) + Number( currPool.arthaDice ); d++ )
             {
                 let r = roll();
 
                 if ( r >= currPool.shade ) { currPool.successes++; }
                 if ( currPool.isOpenEnded && r === 6 ) { d--; }
 
-                currPool.dice.push( r );
+                currPool.basePool.push( r );
             }
 
-        //output
+          //output
             bot.sendMessage(
             {
                 to: channelID,
                 message: currPool.printPool()
             });
 
-        //VS Test
+          //VS Test
             if ( isVS && prevPool != [] )
             {
                 let VSmsg =  '';
@@ -726,7 +769,7 @@ bot.on( 'message', function ( user, userID, channelID, message, evt )
 
             prevPool = currPool;
         }
-    //Debug output 
+      //Debug output 
         else
         {
             bot.sendMessage( {to: channelID, message: 'That\'s not a valid command.'} );
@@ -739,19 +782,73 @@ function roll ()
     return  1 + Math.floor( Math.random() * 6 );
 }
 
-//+ this will have to change when Beginner's Luck, Ob*2, Ob*4 are implemented
 function RDC (Pool, Obstacle)
 {
     if ( Obstacle > Pool )
     {
-       return 'Challenging test!';
+       return 'Challenging test';
     }
     else if ( Obstacle > routineTest[Pool] )
     {
-        return 'Difficult test!';
+        return 'Difficult test';
     }
     else
     {
-        return 'Routine test.';
+        return 'Routine test';
     }
+}
+
+function diceSugar( pool, shade, open )
+{
+    let msg = '[';
+
+    if ( Array.isArray( pool ) )
+    {
+        for ( let d = 0; d < pool.length; d++ )
+        {
+            if ( Array.isArray( pool[d] ) )
+            {
+                msg += diceSugar( pool[d], shade, open );
+            }
+            else if ( open != 0 && ( pool[d] === 6 || pool[d] === 1 ) )
+            {
+                if ( pool[d]  === 6 )
+                {
+                    msg += ( d === 0 ? '__**' + pool[d] : ', __**' + pool[d] );
+                
+                    while ( pool[d + 1] === 6 )
+                    {
+                        msg += ', '+  pool[++d];
+                    }
+
+                    if ( open == 2 && pool[d + 1] === 1 )
+                    {
+                        msg += '**, ~~' + pool[++d] + ', ' + pool[++d] + '~~';
+                    }
+                    else
+                    {
+                        msg += ( pool[++d] >= shade ? ', ' + pool[d] + '**' : '**, ' + pool[d] );
+                    }
+                    
+                    msg += '__';
+                }
+                
+                if ( open == 2 && pool[d] ===1 && d != pool.length )
+                {
+                    msg += ( d === 0 ? '~~' +  pool[d] + ', ' + pool[++d] + '~~' : ', ~~' + pool[d] + ', ' + pool[++d] + '~~' );
+                }
+            }
+            else if ( pool[d] >= shade )
+            {
+                msg += ( d === 0 ? '**' + pool[d] + '**' : ', **' + pool[d] + '**');
+            }
+            else
+            {
+                msg += ( d === 0 ? pool[d] : ', ' + pool[d] );
+            }
+      }
+      msg += ']';
+    }
+    
+    return msg;
 }
