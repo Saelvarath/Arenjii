@@ -2,13 +2,14 @@
   "name": "arenjii",
   "version": "1.0.0",
   "description": "White God of Progression",
-  "main": "bot.js",
-  "author": "Saelvarath",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "discord.io": "github:woor/discord.io#gateway_v6",
-    "discord.js-commando": "^0.9.0",
-    "install": "^0.11.0",
-    "uninstall": "0.0.0",
-    "winston": "^2.4.1"
+    "discord.js": "^11.3.2"
   }
 }

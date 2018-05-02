@@ -1,5 +1,4 @@
-var Discord = require( 'discord.io' );
-var logger = require( 'winston' );
+var Discord = require( 'discord.js' );
 var config = require( './config.json' );
 
 class diePool 
@@ -120,16 +119,8 @@ class diePool
     }
 }
 
-// Configure logger settings
-logger.remove( logger.transports.Console );
-logger.add( logger.transports.Console, { colorize: true });
-logger.level = 'debug';
-
 // Initialize Discord Bot
-const client = new Discord.Client({
-   token: config.token,
-   autorun: true
-});
+const client = new Discord.Client(); //-{ token: config.token, autorun: true });
 
 /*
 Challenging = # of dice rolled +1
@@ -140,23 +131,19 @@ const routineTest = [0, 1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 
 var prevPool = new diePool();
 const prefix = config.prefix;
 
-client.on( 'ready', function (evt) {
-    logger.info( 'Connected' );
-    logger.info( 'Logged in as: ' );
-    logger.info( `${client.username} - (${client.id})` );
-});
+client.on ( "ready", () => { console.log( "I am ready!" ); } );
 
-client.on( 'message', function ( user, userID, channelID, message, evt ) 
+client.on( 'message', ( message ) =>
 {
     //+ splice instead and take the tilde out of the command search
     //+ ENSURE THE GITIGNORE DOES NOT POST AUTH.JSON ON GITHUB
     //+ see if there are places to use Template literals ${} in printpool
 
-    if ( message.slice( 0, config.prefix.length ) === prefix && message.length > 1) //+ && !message.author.bot ) 
+   if ( message.content.slice( 0, config.prefix.length ) === prefix && message.content.length > 1 && !message.author.bot ) 
     {
       //RegEx Setup
         //-let args = message.split( ' ' );
-        let args = message.slice( config.prefix.length ).trim().split(/ +/g);
+        let args = message.content.slice( config.prefix.length ).trim().split(/ +/g);
         let firstCmd = args[0];
 
         let isVS = false;
@@ -170,7 +157,7 @@ client.on( 'message', function ( user, userID, channelID, message, evt )
       //Help
         if ( firstCmd.toLowerCase() === 'help' )
         {
-            msg += `**${user} has queried the cosmos.**`;
+            msg += `**${message.author} has queried the cosmos.**`;
 
           //Flagged
             if ( args[1] )
@@ -280,7 +267,7 @@ client.on( 'message', function ( user, userID, channelID, message, evt )
             let DoF = roll();
         
           //Output    
-            msg += `${user}  rolled a Die of Fate`;
+            msg += `${message.author} rolled a Die of Fate`;
             if ( bonus > 0 ) { msg += ` + ${bonus}`; }
             else if ( bonus < 0 ) { msg += ` ${bonus}`; }
             
@@ -545,7 +532,7 @@ client.on( 'message', function ( user, userID, channelID, message, evt )
             
             var currPool = new diePool();
 
-            currPool.owner = user;
+            currPool.owner = message.author;
             currPool.exponent = Number( firstExp[2] );
             currPool.totalRolled = currPool.exponent;
             currPool.isOpenEnded = firstExp[3] === '!';
@@ -719,12 +706,7 @@ client.on( 'message', function ( user, userID, channelID, message, evt )
       //output
         if ( msg != '' )
         {
-            //message.channel.send( msg );
-            client.sendMessage(
-                {
-                    to: channelID,
-                    message: msg
-                });
+            message.channel.send( msg );
         }
     }
 });
@@ -813,3 +795,5 @@ function diceSugar( pool, shade, open )
     
     return msg;
 }
+
+client.login( config.token );
