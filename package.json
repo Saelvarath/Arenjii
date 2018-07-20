@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^11.3.2"
+    "discord.js": "^11.3.2",
+    "enmap": "^2.2.1",
+    "enmap-mongo": "^2.0.1"
   }
 }
