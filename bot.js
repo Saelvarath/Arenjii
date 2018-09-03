@@ -7,27 +7,27 @@ const Enmap = require('enmap');
 //+ TODO
     //+ Optimize Fate/Luck?
     //+ Ensure Versus test are correct?
-        //+ make a way to privately roll a VS test?
-    
 
 class diePool
 {
   // Constructor
-    constructor( ard = 0, asd = 0, asp = [], asr = 0, bl = false, bp = [], co = false, ex = 0, fd = false, hd = 0, hx = [], hp = [], ins = false, oe = false, na = 0, oa = 0, om = 1, ob = 0, ow = '', sh = 4, sc = 0, tr = 0 )
+    constructor( ard = 0, asd = 0, asp = [], asr = 0, bl = false, bn = 0, bp = [], co = false, ex = 0, fd = false, gr = false, hd = 0, hx = [], hp = [], ins = false, oe = false, na = 0, oa = 0, om = 1, ob = 0, ow = '', sh = 4, sc = 0, tr = 0 )
     {
         this.arthaDice = ard;       // number of dice added through spending Artha
         this.astroDice = asd;       // number of dice added through Astrology FoRK
         this.astroPool = asp;       // results of astrological FoRKs/Help
         this.astroResult = asr;     // Successes gained or lost through Astrology
         this.beginnersLuck = bl;    // do you actually have the right skill for the job?
+        this.booned = bn;           // How many Persona Points have been spent on this roll?
         this.basePool = bp;         // array of dice results, includes FoRKs, Artha Dice, Advantage Dice
         this.calledOn = co;         // if a Call-on Trait has been used on this roll.
         this.exponent = ex;         // BASE number of dice rolled, Exponent of the roll.
         this.fated = fd;            // if a Fate point has been spent on this roll
+        this.graced = gr;           // if a Saving Grace has been employed on this roll
         this.helperDice = hd;       // number of dice added by helpers
         this.helperExponent = hx;   // the exponent of your helpers
         this.helperPool = hp;       // how much your companions 'helped' you
-        this.inspired = ins;        // has this roll recieved Divine Inspiration?
+        this.inspired = ins;        // has Divine Inspiration struck this roll?
         this.isOpenEnded = oe;      // do dice explode?
         this.nonArtha = na;         // the number of non-artha dice added to the roll
         this.ObAddition = oa;       // added to Base Obstacle after it's multiplied
@@ -60,7 +60,7 @@ class diePool
 
         msg += this.isOpenEnded ? 'Open-Ended dice' : 'shaded dice';
 
-        msg += this.beginnersLuck ? ', Beginner\'s Luck,' : '';
+        msg += this.beginnersLuck ? ", Beginner's Luck," : '';
 
         msg += this.obstacle > 0 ? ` against an Ob of ${this.obstacle * this.ObMultiplier + this.ObAddition}` : '';
 
@@ -117,7 +117,7 @@ class diePool
         {
             if ( this.ObMultiplier > 1 )
             {
-                msg += `\nThat\'s ${totesSuccessess} in total and effective success of ${Math.floor( ( totesSuccessess - this.ObAddition ) / this.ObMultiplier )} on a graduated test.`;
+                msg += `\nThat's ${totesSuccessess} in total and effective success of ${Math.floor( ( totesSuccessess - this.ObAddition ) / this.ObMultiplier )} on a graduated test.`;
             }
             else
             {
@@ -127,8 +127,6 @@ class diePool
         return msg;
     }
 }
-
-var testRoll = new diePool();
 
 // Initialize Discord Bot
 const client = new Discord.Client(); //- { token: config.token, autorun: true });
@@ -153,7 +151,6 @@ client.on( 'message', ( message ) =>
 
         let isVS = false;
         let saveRoll = true;
-        let isTestRoll = false;
 
         let msg = ''; //- message.author.id === config.boss ? 'Sure thing, Boss!\n' : '';
 
@@ -163,7 +160,7 @@ client.on( 'message', ( message ) =>
       // Help
         if ( firstCmd.toLowerCase() === 'help' )
         {
-            msg += `**${message.author} has queried the cosmos.**`;
+            msg += `**${message.author.username} has queried the cosmos.**`;
 
           //Flagged
             if ( args[1] )
@@ -172,14 +169,14 @@ client.on( 'message', ( message ) =>
                 {
                     case 'co':
                     case 'callon':
-                        msg += '\n__Call on Trait__';
-                        msg += '\nFunction: Rerolls all traitor dice. Usable once per roll.';
-                        msg += '\nForm: `~co` of `~callon`';
+                        msg += '\n__Call-On Trait__';
+                        msg += '\nFunction: Rerolls all traitor dice in your previous roll. Usable once per roll.';
+                        msg += '\nForm: `~co` or `~callon`';
                         break;
                     case 'dof':
                         msg += '\n__Die of Fate__';
                         msg += '\nFunction: Rolls a single die.';
-                        msg += '\nForm: `~dof`';
+                        msg += '\nForm: `~dof` {tags}';
                         msg += '\nExtra Tags:';
                         msg += '\n\t` +#` adds `#` [1-9] to the result of the roll.';
                         msg += '\n\t` -#` subtracts `#` [1-9] to the result of the roll.';
@@ -190,12 +187,22 @@ client.on( 'message', ( message ) =>
                         msg += "\nFunction: Rerolls all 6s in your previous roll if it wasn't open-ended or one traitor die if it was. Usable once per roll.";
                         msg += '\nForm: `~fate` or `~luck`';
                         break;
+                    case 'grace':
+                        msg += '\n__Saving Grace, Deeds Point__'
+                        msg += '\nFunction: Rerolls all Traitor Dice in your previous roll. Usable once per roll.';
+                        msg += '\nForm: `~grace`';
+                        break;
+                    case 'help':
+                        msg += '\n__Bot Manual__'
+                        msg += "\nFunction: displays information about Arenjii's various uses.";
+                        msg += '\nForm: `~help` optional `command`. eg. `~help diff`';
+                        msg += "\nNotes: if no commands are specified it will display a brief summary of all of arenjii's commands";
+                        break;
                     case 'pr':
                     case 'prev':
                         msg += '\n__Display Previous Roll__';
-                        msg += '\nFunction: Prints the previous roll of the mentioned user, including all changes made to it afterwards such as with `~fate` or `~vs`';
-                        msg += '\nForm: `~pr` or `~prev` optional: `@user`';
-                        msg += '\nNotes: if no users are mentioned it will display *your* last roll.';
+                        msg += '\nFunction: Displays your previous roll or that of the mentioned user, including all changes made to it afterwards such as with `~callon`, `~fate` and `~vs`';
+                        msg += '\nForm: `~pr` or `~prev` optional: `@user`. eg `~prev @Un-Arenjii#4939`';
                         break;
                     case 'diff':
                     case 'difficulty':
@@ -214,8 +221,8 @@ client.on( 'message', ( message ) =>
                     case 'vs':
                         msg += '\n__Versus Test__';
                         msg += '\nFunction: Compares rolls. Which rolls are compared depends on how many mentions follow the command.';
-                        msg += '\nForm: `~vs @user {...}`';
-                        msg += '\nNotes:\n\t- One Mention: Mentioned person\'s last roll vs your last roll\n\t- Two+ Mentions: The last rolls of every person mentioned';
+                        msg += '\nForm: `~vs {@user...}`';
+                        msg += "\nNotes:\n\t- No Mentions: compares all rolls in the VS stack (see the `vs` tag in the roll command). Clears the stack if successful.\n\t- One Mention: Compares mentioned person's last roll vs your last roll.\n\t- Two+ Mentions: Compares the last rolls of every person mentioned.";
                         break;
                     case 'roll':
                         msg += '\n__Roll the Dice__';
@@ -223,60 +230,62 @@ client.on( 'message', ( message ) =>
                         msg += '\nForm: `~X#{!}`';
                           msg += '\n\t`X` Accepts `b`, `g` or `w`. Determines the Shade (Black, Grey or White respectively) of the roll.';
                           msg += '\n\t`#` the Exponent of the Test to be rolled [0 to 99]. Dice multipliers like the `di` tag only affect this number.';
-                          msg += '\n\t`!` *optional*; adding this changes the roll to be Open-Ended';
+                          msg += '\n\t`!` *optional*; adding this makes the roll Open-Ended';
                         msg += '\nExtra Tags:';
                           msg += '\n\t`ad#` __Advantage__ Adds `#` dice to the roll, unaffected by dice multipliers';
-                          msg += '\n\t`as{#}` __Astrology, FoRK__: Adds special Astrology FoRK dice. Rolls 1 die by default. `as2` will roll 2';
-                          msg += '\n\t`bl ` __Beginners\' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill';
-                          msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` [1-3] dice to the roll that do no affect difficulty. Unaffected by dice multipliers';
-                          msg += '\n\t`di ` __Divine Inspiration__: Multiplies Exponent Dice by 2 and counts these extra dice as gained through Artha expenditure.';
+                          msg += '\n\t`as#` __Astrology, FoRK__: Adds special Astrology FoRK dice. # = [your Astrology exponent].';
+                          msg += "\n\t`bl ` __Beginners' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill";
+                          msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` (3 Maximum) dice to the roll that do no affect difficulty. Unaffected by dice multipliers';
+                          msg += '\n\t`di ` __Divine Inspiration, Deeds Point__: Multiplies Exponent Dice by 2 and counts these extra dice as gained through Artha expenditure.';
                           msg += '\n\t`ds#` __Disadvantage__: Adds `#` to the Base Obstacle, unaffected by Ob multipliers.';
                           msg += '\n\t`fk#` __FoRK__: Functionally identical to `ad`. See `as` to FoRK in Astrology';
-                          msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10]. if an Obstacle is specified I can tell how difficult their test is';
+                          msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10]. if an Obstacle is specified I will say how difficult their test is';
                           msg += '\n\t`ns`  __Not Saved__: Do not save this roll. Several features use your previous roll';
                           msg += '\n\t`ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#` and returns the difficulty of the test. Obstacle multipliers only affect this number';
-                          msg += '\n\t`ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle of by `#`.';
-                          msg += '\n\t`vs ` __Versus Test__: *Unimplemented* Will flag Arenjii to compare this roll with another and declare a winner';
-                        msg += '\nNotes:\n\t- Its usually okay to include FoRKs and Advantage dice in your Exponent. The exception being when the `di` tag is included.\n\t- Similarly, unless the `bl` or `ox` tags are included it\'s alright to forgo the `ds` tag';
+                          msg += '\n\t`ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle by `#`.';
+                          msg += '\n\t`vs ` __Versus Test__: Hide the results of the roll and add it to the VS Pile. Trigger the Versus Test with `~vs`.';
+                        msg += "\nNotes:\n\t- Its usually okay to include FoRKs and Advantage dice in your Exponent. The exception being when the `di` tag is included.\n\t- Similarly, unless the `bl` or `ox` tags are included it's alright to forgo the `ds` tag";
                         break;
                 }
             }
           //No Flags
             else
             {
-                msg += '\nI am Arenjii, the White God of Progression.\nI am still in development but I still have a few tricks up my sleeve!';
+                msg += '\nI am Arenjii, the White God of Progression.';
 
                 msg += '\nAll commands are case insensitive so yell if you like. Speak slowly though, add spaces between tags so I can understand you.';
+                msg += '\nCurly braces `{}` denote optional features explained in the help text for the individual command.';
+                msg += '\nFor more detail on individual commands us `~help {command}`.\n\tExample: `~help vs`.';
 
                 msg += '\n`~co`: See `~callon`';
-                msg += '\n`~callon`: __Call On Trait__ rerolls all traitor dice';
+                msg += '\n`~callon`: __Call On Trait__ rerolls all traitor dice. Tracked separatetly from Saving Grace.';
                 msg += '\n`~diff X Y`: See `difficulty`';
-                msg += '\n`~difficulty X Y`: __Difficulty Calculator__ Returns if roll of `X` dice against and Ob of `Y` is Routine, Difficult or Challenging.';
-                msg += '\n`~dof`: __Die of Fate__ Rolls a single die.';
+                msg += '\n`~difficulty X Y`: __Difficulty Calculator__ Returns if a roll of `X` dice against an Ob of `Y` is Routine, Difficult or Challenging.';
+                msg += '\n`~dof {tags...}`: __Die of Fate__ Rolls a single die.';
                 msg += '\n`~fate`: See `~luck`.';
-                msg += '\n`~help [command]`: __Specific Help__ gives more details about individual commands.';
+                msg += '\n`~grace`: __Saving Grace, Deeds Point__: Rerolls all traitor dice, tracked separately from Call-on.';
+                msg += '\n`~help {command}`: __Specific Help__ gives more details about individual commands.';
                 msg += "\n`~luck`: __Luck, Fate point__: Rerolls all 6s in the previous roll if it wasn't open-ended or one traitor die if it was. Only useable once per roll";
-                msg += '\n`~pr`: See `~prev`';
-                msg += '\n`~prev`: __Previous Roll__: displays the previous roll.';
+                msg += '\n`~pr {@user}`: See `~prev`';
+                msg += '\n`~prev {@user}`: __Previous Roll__: displays the previous roll.';
+                msg += '\n`~prob`: __Probability__: **Unimplemented** calculates the possible outcomes of a given roll.';
                 msg += '\n`~rdc X Y`: See `difficulty`';
                 msg += '\n`~test`: __How Can I Help?__ displays a list of things that need testing.';
-                msg += '\n`~vs`: __Versus Test__ Pits two rolls against eachother.';
-                msg += '\n`~b#`, `~g#`, `~w#` rolls a pool of `#` [0-99] black, grey or white dice respectively. adding a `!` after `#` will make the roll open ended.\n\ttype `~help roll` for more info on how to roll.';
+                msg += '\n`~vs {@user...}`: __Versus Test__ Pits two or more rolls against eachother.';
+                msg += '\n\n`~b#{!}`, `~g#{!}`, `~w#{!}` all include `{tags...}`. Rolls a pool of `#` [0-99] black, grey or white dice respectively.\n\ttype `~help roll` for more info on how to roll.';
 
-                msg += '\n\nPlease PM Saelvarath if you find any bugs or have other suggestions!';
+                msg += '\n\nPlease PM Saelvarath if you find any bugs or have other comments or suggestions!';
             }
         }
       // Call On trait
-        else if ( firstCmd === 'co' || firstCmd === 'callon' )
+        else if ( firstCmd === 'co' || firstCmd === 'callon' || firstCmd === 'grace' )
         {
-            //- msg += 'coming soon to a bot near you.';
-            
             let prevPool = client.rollMap.get( message.author.id );
 
-            if ( prevPool.calledOn )
-            {
-                msg += 'You have already used a Call-on trait for this roll';
-            }
+            if ( prevPool.calledOn && firstCmd.startsWith( 'c' ) )
+                {   msg += 'You have already used a Call-on trait for this roll.';   }
+            else if ( prevPool.graced && firstCmd === 'grace' )
+                {   msg += `You already had a Saving Grace.`;   }
             else
             {
                 let prevShade = prevPool.shade;                
@@ -284,7 +293,7 @@ client.on( 'message', ( message ) =>
                 let expoTally = 0;
                 let result = 0;
 
-              //+ Check Astrology pool
+              // Check Astrology pool
                 let a = 0;
                 while ( prevPool.astroPool[a] != null )
                 {
@@ -314,14 +323,14 @@ client.on( 'message', ( message ) =>
 
                         if ( prevPool.astroPool[a] === 1 )
                         {
-                            astroTally += prevPool.astroPool[ a + 1 ] < prevShade;    //-
+                            astroTally += prevPool.astroPool[ a + 1 ] < prevShade;
                             prevPool.astroPool.splice( a, 2, ...newRoll);
                         }
                         else
-                        {   prevPool.astroPool.splice( a, 1, ...newRoll );    }
+                            {   prevPool.astroPool.splice( a, 1, ...newRoll );    }
                     }
                     a += newRoll.length ? newRoll.length : 1;
-                }/**/
+                }
 
                 prevPool.astroResult += astroTally;
 
@@ -363,7 +372,6 @@ client.on( 'message', ( message ) =>
                                 newRoll.push( result );
                                 expoTally += result >= prevShade;
                             }
-                            //prevPool.basePool.splice( dII, 1, ...newRoll );
                             prevPool.helperPool[hI].splice( dII, 1, ...newRoll );
                         }
                     });
@@ -376,7 +384,11 @@ client.on( 'message', ( message ) =>
                 }
                 else
                 {
-                    prevPool.calledOn = true;
+                    if ( firstCmd.startsWith( 'c' ) )
+                        {   prevPool.calledOn = true;   }
+                    else if ( firstCmd === 'grace' )
+                        {   prevPool.graced = true;   }
+                    
                     prevPool.successes += expoTally;
                     client.rollMap.set( message.author.id, prevPool );
                     msg += `your rerolls net you ${astroTally + expoTally} successes.\n${prevPool.printPool()}`;
@@ -384,10 +396,9 @@ client.on( 'message', ( message ) =>
             }
         }
       // Test Difficulty calculator
+        //+ add Ob addition/multiplication?
         else if ( firstCmd === 'diff' || firstCmd === 'difficulty' || firstCmd === 'rdc' )
         {
-        //+ add Ob addition/multiplication?
-
         // has required arguments
             if ( args[2] )
             {
@@ -405,7 +416,7 @@ client.on( 'message', ( message ) =>
                 // array index out of bounds prevention
                     if ( d > routineTest.length )
                     {
-                        msg += 'Whoa there friend... That\'s an awful lot of dice you\'re slinging there...\n What do you think you are playing? Shadowrun? *Exalted?*';
+                        msg += "Whoa there friend... That's an awful lot of dice you're slinging there...\n What do you think you are playing? Shadowrun? *Exalted?*";
                     }
                 // negative dice rolled or Negative Ob
                     else if ( o <= 0 || d < 0 )
@@ -455,9 +466,9 @@ client.on( 'message', ( message ) =>
           // Output
             msg += `${message.author} rolled a Die of Fate`;
             if ( bonus > 0 )
-            {   msg += ` + ${bonus}`;   }
+                {   msg += ` + ${bonus}`;   }
             else if ( bonus < 0 ) 
-            {   msg += ` ${bonus}`;   }
+                {   msg += ` ${bonus}`;   }
 
             msg += `!\n[${DoF + bonus}]`;
         }
@@ -472,9 +483,9 @@ client.on( 'message', ( message ) =>
             msg += 'What makes a knight?\nA shining blade or bloody battered steel?\nLet us name the Orders Four and the truth within reveal.\n\nTHE GEAS KNIGHT unknown by name, the seeker proud and true,\nHis endless quest hath rent the stars yet known is he by few,\n\nTHE PEREGRINE, whose bell always rings the crack of breaking day,\nIt’s nameless peal will drive the ceaseless evil from the ways,\n\nTHE BLOODY KNIGHT, belligerent, her edge tastes skulls and lives,\nThe viscera of common men and royalty besides,\n\nTHE MENDICANT, the beggar knight, roughly clad and shod,\nHe lives as though he were a beast, but fights he as a God.';
         }
       // Luck; Fate point, retroactively make a roll Open-Ended or reroll one die
+        //+ if there is a mention; use that roll?
         else if ( firstCmd === 'luck' || firstCmd === 'fate' )
         {
-            //+ if there is a mention; use that roll?
             let prevPool = client.rollMap.get( message.author.id );
 
             if ( prevPool !== null && !prevPool.fated )
@@ -544,7 +555,7 @@ client.on( 'message', ( message ) =>
                     else
                     {
                         prevPool.fated = true;
-                        msg += reroll >= prevPool.shade ? `Traitorous ${traitorType} die converted!\n${traitor} => ${reroll}\nthat\'s +1 success for a total of ${++prevPool.successes}` : `Well, you tried...\nI rerolled a ${traitor} from your ${traitorType} dice but only got at ${reroll}`;
+                        msg += reroll >= prevPool.shade ? `Traitorous ${traitorType} die converted!\n${traitor} => ${reroll}\nthat's +1 success for a total of ${++prevPool.successes}` : `Well, you tried...\nI rerolled a ${traitor} from your ${traitorType} dice but only got at ${reroll}`;
                     }
                 }
               // Roll Not Open-Ended
@@ -601,15 +612,7 @@ client.on( 'message', ( message ) =>
                     prevPool.fated = true;
                     prevPool.isOpenEnded = true;
 
-                    msg += `reroll results: ${prevPool.printPool()}`; /*${diceSugar( rerollBase, prevPool.shade, prevPool.isOpenEnded )}`;
-
-                    rerollHelp.forEach( ( helper, hI, hC ) =>
-                    {
-                        if ( helper.length > 0 )
-                        {
-                            msg += `\nhelper${hI}: ${diceSugar( helper,  prevPool.shade, prevPool.isOpenEnded )}`;
-                        }
-                    });*/
+                    msg += `reroll results: ${prevPool.printPool()}`;
                 }
 
                 //+ if there is a mention; log roll under user.id
@@ -618,7 +621,7 @@ client.on( 'message', ( message ) =>
           // Fate point already spent
             else
             {
-                msg += 'No Previous roll or you\'ve already spent a Fate point on that roll';
+                msg += "No Previous roll or you've already spent a Fate point on that roll";
             }
         }
       //+ Maybe Easter Egg
@@ -626,46 +629,87 @@ client.on( 'message', ( message ) =>
         {
 
         }
-      //+ Psalms Easter Egg
-        else if ( firstCmd === 'psalms' )
+      // Meti's Sword Manual
+        else if ( firstCmd === 'meti' )
         {
-            /*switch ( args[2] ) {
+            let verse = typeof args[1] === 'undefined' ? 1 + Math.floor( Math.random() * 30 ) : Number( args[1] );
+
+            if ( verse <= 6 )
+                {   msg += "**Argument**\n";  }
+            else if ( verse <= 8 )
+                {   msg += "**Mastering the Sword**\n"; }
+            else if ( verse <= 26 )
+                {   msg += `**The 18 Precepts**\n__${ verse - 9 })__: `;   }
+            else
+                {   msg += "**Closing**\n";   }
+
+            switch ( verse )
+            {
                 case 1:
-                    msg += '**Royalty**';
-                    break;
+                    msg += "Glory to the Divine Corpse, o breaker of infinities.\nI am Meti, of no house but myself. In my 108th year I am surrounded by fools. My compatriots cling obsessively to their destiny, and my only apprentice is an idiot speck of a girl with more talent for eating than skill with the blade. Therefore I have decided to die drowning in the boiling gore of my enemies, of which there are many."; break;
                 case 2:
-                    msg += '**The King in the Tower**';
-                    break;
-                case 2:
-                    msg += '**The Grand Enemy Called I**';
-                    break;
+                    msg += "My master was the greatest lord general to the king Au Vam, Ryo-ten-Ryam, who first coaxed me into learning the ways of turning men into ghosts. As his interest quickly turned to the wholly uninteresting and most useless parts of my body, I returned the favor and relieved him of his.";  break;
+                case 3:
+                    msg += "It is my personal opinion the straight sword is best if you can obtain one, but I also favor the sabre. The spear, stave, or club are peasant's weapons of which I am wholly unfamiliar and so will not speak on them.";    break;
+                case 4:
+                    msg += "Upon meeting me, you might find that my appearance is quite dreadful and unkempt. I have been spat upon by priest, king, and merchant alike. I have no retainers, and possess nothing except a straight sword six hand spans (five and a half kret) long (this is the proper length). This is because I am Royalty and the undisputed master of the principal art of Cutting. I will fight naked with ten-thousand men.";   break;
+                case 5:
+                    msg += "When it came time to face my first real opponent, the Colossus of Pardos, in my youthful pride and immense skill, I brought all my training and mastery to bear. Scarcely half a day passed before my sword was shattered into thirty pieces, my right leg was almost torn from its socket, and my honed body was broken pathetically in a hundred and forty places. I defeated him by gouging his brains out through his breathing valves. My thumbs, in this case, proved far more useful.\nAt that moment, with my thumbs in his brains, I had a revelation. I had trained far too broadly. Existence and the act of combat are absolutely no different, and the essence of both, the purity of both, is a singular action, which is Cutting Down Your Opponent. You must resolve to train this action. You must become this action. Truly, there is very little else that will serve you as well in this entire cursed world.";    break;
+                case 6:
+                    msg += "I hope that by reading this manual, you will be thoroughly encouraged to become a farmer."; break;
+                    
+                case 7:
+                    msg += "YISUN's glory is great, and you may know this by two paths, the sanctioned words, and the sanctioned action.\nThe sanctioned words are YS ATN VARAMA PRESH. The meaning of these words is YISUN and their attainment is Royalty.\nThe sanctioned action is to Cut.\nTo Cut means division by the blade of Want, that parer of potentials that excises infinities."; break;
+                    /*YS ATUN VRAMA PRESH
+                      YS ATN VARAMA PRESH
+                      YS ATUN VARANMA PRESH*/
                 case 8:
-                    msg += '';
-                    break;
+                    msg += "To train with the sword, first master sweeping. When you have mastered sweeping, you must master the way of drawing water. Once you have learned how to draw water, you must split wood. Once you have split wood, you must learn the arts of finding the fine herbs in the forest, the arts of writing, the arts of paper making, and poetry writing. You must become familiar with the awl and the pen in equal measure. When you have mastered all these things you must master building a house. Once your house is built, you have no further need for a sword, since it is an ugly piece of metal and its adherents idiots."; break;
+
+                case 9:
+                    msg += "Consider: there is no such thing as a sword.";
                 case 10:
-                    msg += '';
-                    break;
+                    msg += "Your stance must be wide. You must not be spare with the fluidity of your wrists or shoulders. You must have grip on the handle that is loose and unstrained. I heard it said you must be tender with your sword grip, as though with a lover. This is patently false. A sword is not your lover. It is a hideous tool for separating men from their vital fluids.";    break;
+                case 11:
+                    msg += "Going onwards, you must adjust hands as needed, do not keep the blade close to your body, keep your breathing steady. This is the life cut. You must watch your footwork. Your feet must be controlled whether planted on fire, air, water, or earth in equal measure.";    break;
+                case 12:
+                    msg += "Breathing is very important! Is the violent breath of life in you not hot? Exhale! Exult!";    break;
+                case 13:
+                    msg += "You must strive for attachment-non-attachment when cutting. Your cut must be sticky and resolute. A weak, listless cut is a despicable thing. But you must also not cling to your action, or its result. Clinging is the great error of men. A man who strikes without thought of his action can cut God.";    break;
+                case 14:
+                    msg += "To cut properly, you must continually self-annihilate when cutting. Your hand must become a hand that is cutting, your body a body that is cutting, your mind, a mind that is cutting. You must instantaneously destroy your fake pre-present self. It is a useless hanger on.";   break;
+                case 15:
+                    msg += "A brain is useful only up until the point when you are faced with your enemy. Then it is useless. The only truly useful thing in this cursed world is will. You must suffuse your worthless body with its terrible heat. You must be so hot that even if your enemy should strike your head off, you shall continue to decapitate ten more men. Your boiling blood must spring forth from your neck and mutilate the survivors!";  break;
+                case 16:
+                    msg += "You must never make 'multiple' cuts. Each must be singular in its beauty, no matter how many precede it. You must make your enemies weep with admiration, and likewise should your head be shorn off by such an object of beauty, you must do your best to shed tears of respect.";    break;
+                case 17:
+                    msg += "When decapitating an enemy, it is severe impoliteness to use more than one blow."; break;
+                case 18:
+                    msg += "A man who finds pleasure in the result of cutting is the most hateful, crawling creature there is. A man who finds pleasure in the act of cutting is an artisan."; break;
+                case 19:
+                    msg += "Man always strives to cut man. Therefore he who draws his sword the fastest is the survivor. To pre-empt this, you must live, eat, and shit as a person who has their sword drawn. It doesn't matter whether your blade, in actuality, is always out of its sheathe, though you will look like an idiot if it is.";    break;
+                case 20:
+                    msg += "Consider: The undefeated swordsman must be exceptionally poor.";   break;
+                case 21:
+                    msg += "The weak swordsman reserves his sword strokes. He clings excessively to his blade. His footwork is unsteady. His grip is too hard and he is afraid to crack the earth with his step. He has a shallow and wandering gaze, his tongue is sluggish and pale. He refuses to exhale the hot breath of the Flame Immortal.";    break;
+                case 22:
+                    msg += "The weak swordsman clings to victory. He thinks of his life, his obligations, the outcome of the battle, his hatred for his opponent, his training, his pride in his mastery. By doing so, he is an imperfect vessel for the terrible fires of Will. He will surely crack. He will not laugh uproariously if he is cleft in two by his opponent’s blade. When his sword is shattered, his hands will be too reserved to tear his enemies’ flesh."; break;
+                case 23:
+                    msg += "The weak swordsman strikes his enemy down and thinks his task done. He relishes in victory. He casts away his sword and returns to his lover. Little does he know his single cut will encircle the world five times and strike him down fifty-fold.";  break;
+                case 24:
+                    msg += "The weak swordsman clings to his instrument. It is better you have a sword, but death must lie under your fingernails, if need be. Learn death with your elbows, death with your knees, and death with your thumbs and fingertips. It is said death with the tongue is useful, but I find words too soft an instrument to smash a man’s skull";    break;
+                case 25:
+                    msg += "In manners of terrain, you must learn to cut yourself from it. You must cut even your footprints from it, if need be. Have complete awareness of each crawling thing and each precious flower, each blade of sweet grass and each clod of bitter earth, each beating heart and each being that thrums with love, hope, and admiration. Only then are you qualified to be their annihilator.";  break;
+                case 26:
+                    msg += "Excess heat and excess coldness are undesirable. Learn to read the weather.";  break;
+
+                case 27:
+                    msg += "It is said the greatest warrior-kings may sublime violence and forget all they learn about the sword. This is true. But the only true path to kingship lies through regicide./nMoreover, only the worst kind of idiot strives to be king."; break;
+                case 29:
+                    msg += "My extreme hope is that some measure of wisdom will penetrate the thick skull of my apprentice. If not, may reading this manual demonstrate your powerful disinterest in it, and may its true value die with me."; break;
+                case 30:
+                    msg += "Reach heaven by violence."; break;
             }
-
-            switch ( args[3] ) {
-                case 1:
-
-                    break;
-            }*/
-        }
-      //+ Spasms Easter Egg
-        else if ( firstCmd === 'spasms' ) 
-        { /**/ }
-      // Areas of improvement
-        else if ( firstCmd === 'test' )
-        {
-            msg += '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving of Royalty.\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
-            msg += '\n\nKnown weakenesses of the White God Arenjii are:';
-              msg += '\n\t-__Obstacle Multiplication__: Several new verses to the prayer of rolling have been uncovered, invoke them with `ox#`, `ds#` and `bl`.';
-              msg += '\n\t-__Dice Math__: In additon the `ad#`, `fk#` and `di` verses have been unlocked, with so many new commands it may be possible to overwhelm him.';
-              msg += '\n\t-__Rerolls__: The `~fate` and `~callon` mantras are now functional. Make sure Un-Arenjii honours your well earned rerolls.';
-              msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved. find a friend, better two, and watch Un-Arenjii squirm!';
-            msg += '\nReach heaven through violence.';
         }
       // Show previous rolls
         else if ( firstCmd === 'pr' || firstCmd === 'prev' )
@@ -677,9 +721,135 @@ client.on( 'message', ( message ) =>
                 pr = client.rollMap.get( message.mentions.users.firstKey() );
             }
             else
-            {   pr = client.rollMap.get( message.author.id );   }
+                {   pr = client.rollMap.get( message.author.id );   }
 
-            msg += pr === null ? `I got nothin'` : `${pr.owner}'s last roll was:\n${pr.printPool()}`;
+            msg += pr === null ? `I got nothin'...` : `${pr.owner.username}'s last roll was:\n${pr.printPool()}`;
+        }
+      //+ Dice result probability calculator
+        else if ( firstCmd === 'prob' )
+        {
+            msg += 'Probability math is hard. it will be a while before this gets completed.';
+        }
+      // Psalms Easter Egg
+        else if ( firstCmd === 'psalms' )
+        {
+
+            let verse = typeof args[1] === 'undefined' ? Math.floor( Math.random() * 19 ) : Number( args[1] );
+
+            if ( verse <= 7 )
+                {   msg += "**I. ROYALTY** - ";  }
+            else if ( verse <= 14 )
+                {   msg += "**II. THE KING IN THE TOWER** - "; }
+            else if ( verse <= 18 )
+                {   msg += `**III. THE GRAND ENEMY CALLED I** - `;   }
+
+            switch ( verse ) 
+            {
+                case 0:
+                    msg += 'The Holy Septagrammaton -\n- YS ATUN VRAMA PRESH -';    break;
+                    /*YS ATUN VRAMA PRESH
+                      YS ATN VARAMA PRESH
+                      YS ATUN VARANMA PRESH*/
+                case 1:
+                    msg += 'i.\nYISUN said: let there not be a genesis, for beginnings are false and I am a consummate liar.';    break;
+                case 2:
+                    msg += 'ii.\nThe full of it is this –\nthe circular suicide of God is the perfection of matter.';    break;
+                case 3:
+                    msg += 'iii.\nYISUN lied once and said they had nine hundred and ninety nine thousand names.\nThis is true, but it is also a barefaced lie.\nThe true name of God is I.';    break;
+                case 4:
+                    msg += 'iv.\nLiving is an exercise of violence.\nExercise of violence is the fate of living';    break;
+                case 5:
+                    msg += 'v.\nViolence is circular.\nPerception is not circular and lacks flawlessness-\ntherefore, rejoice in imperfect things, for their rareness is not lacking!';    break;
+                case 6:
+                    msg += 'vi.\nLove of self is the true exercise of the God called I.';    break;
+                case 7:
+                    msg += 'vii.\nOnly an idiot cannot place his absolute certainty in paradoxes.\nThe divine suicide is a perfect paradox.\nA man cannot exist without paradox –\nthat is the full of it.';    break;
+                case 8:
+                    msg += 'i.\nYISUN is the supreme king. It is impossible for YISUN to have any rivals – you will see this.\nYISUN does not aspire to royalty: YISUN is the two-syllable name of the seven syllable name of royalty revealed.\nOnly those who can invert a path can know the secret name of YISUN.';    break;
+                case 9:
+                    msg += 'ii.\nIt was once said that YISUN had many names.\nThis is true, but all of them are false save the name YISUN, which in itself is a paradox.';    break;
+                case 10:
+                    msg += 'iii.\nYISUN is the weakest thing there is and the smallest crawling thing, and the worm upon the earth and in the earth.';    break;
+                case 11:
+                    msg += 'iv.\nYISUN is capable of contemplating nothing.';    break;
+                case 12:
+                    msg += 'v.\nTo speak general truths about YISUN is to lie intimately;\nin truth one must learn the tongues but the matter remains that YISUN is the unparalleled master of the fundamental art of lying.\nThe best practice of lying is self deception.';    break;
+                case 13:
+                    msg += 'vi.\nYISUN once said:\n‘Selfish tongues revolt and refuse to invert the contents of their brains – even if it were a lie, this insurrection of our flesh would do us great offense.’';    break;
+                case 14:
+                    msg += 'vii.\nYISUN is the untouchable and prime master of all seven syllables of royalty and once told four lies.\ni. The lie of the giant and the ant\nii. The lie of the iron plum\niii. The lie of the water house\niv. The lie of the small light';    break;
+                case 15:
+                    msg += ' __The Lie of the Giant and the Ant__\n\nYISUN sat once with his disciple Hansa in YISUN’s second clockwise glass palace. Hansa was one of his most ardent students and a grand questioner of YISUN. Unlike Yisun’s other disciple, Pree Ashma, he had no hunger in his heart for dominion of the universe, but a miserly scrutiny and a heart of iron nails. He was not an aspirant for royalty, and thereby attained it through little effort.\nHansa’s questions were thus:\n\n‘Lord, how must I question space?’\n‘With an age, an ant may encircle a giant five million times,’ spoke YISUN.\n\n‘Lord, how then may I question time?’\n‘A giant’s stride takes an ant a week to surpass.’ YISUN spoke and smiled in the 4th way.\nHansa was discontent with this answer and rubbed the stem of his long and worn pipe which he always kept with him and would eventually lead to his annihilation. Since he was royalty, he knew this, and kept it close to him as a reminder of his circular death.\n\n‘Lord, then which should I be, the giant or the ant?’\n‘Both,’ spoke YISUN,’ or either, when it suits you. Destroy the grand enemy called ‘I’.’\n\nHansa contemplated this in silence. Later he would recount this proverb to his daughter.';    break;
+                case 16:
+                    msg += ' __The Lie of the Iron Plum__\n\n';    break;
+                    /*There was once a king named UN-Payam who sat at the right hand of YISUN’s throne and ruled a palace of burnished gold and fire and dispensed justice in all things. It was let known once that Payam had grown an extraordinary plum – enormous in size, with adamant skin that was burnished as a breastplate and fifty times as hardy. Payam was desirous of a pillow friend of fiery heart and excellent skill with their mouth and let know that whosoever could break the skin of that plum with their teeth he would swear to share his bed with for three nights in whatever disposition they may desire.
+                    Many gods were in attendance at Payam’s hall on the first day, and even more on the second day, but by the third day of this strange contest few remained who had not tested their mettle, for the plum remained implacable and immaculate and turned many away with sore teeth and roiling frustration in their brains. A great cry rose up and YISUN was called forth from the twenty third clockwise palace of carbon where YISUN had been meditating on the point of a thirty acre long spear of crystallized time. In companionship with YISUN was Hansa, who followed along.
+                    “See this Payam!” cried the gods, “He deceives us! He cruelly abuses our lustful hearts!”
+                    YISUN was very fond of plums and immediately grasped the iron plum and took a long, succulent bite, praising its merits to the amazement of all.
+                    “How!” wailed the attended.
+                    “Why, it is a plum of flesh, and quite ripe as well,” said YISUN plainly, and indeed, it was apparent to those gathered that it was the case. The plum was passed around and touched and indeed it was sensual and soft and pliant. Hansa was not so convinced. “It is still a plum of iron,” said he, “there is some trickery here, oh master of masters.”
+                    “Indeed, it is so,” said YISUN, and it was again apparent to those gathered that the flesh of that plum was as hard and impermeable as a fortress. “How can it be so?” said Hansa, “How comes this fickle nature? Plums and the fifty winds are not so alike I think.”
+                    YISUN said, “I told you of this and, believing it, it was so. In truth, it is whichever you prefer. In truth, there is no plum at all, just as there is no YISUN.  A plum has no shape, form, or color at all, in truth, but these are all things I find pleasing about it. A plum has no taste at all for it has no flesh or substance, but I find its sweetness intoxicating. A plum is a thing that does not exist. But it is my favorite fruit.”
+                    “A pipe is a thing that does exist, and it is my favorite past time,” said Hansa, lacking understanding, and growing in cynicism.
+                    “What a paradox!” said YISUN, smiling, “I shall share my love tenderly with Payam.”*/
+                case 17:
+                    msg += ' __The Lie of the Water House__\n\n';    break;
+                    /*YISUN and Hansa walked the king’s road once, drinking plum wine. They were enfleshed as maidens at the time, for boastful, drunken Ogam swore on his high seat at the speaking house that any feat accomplished by his brothers he could redouble seven times again. Hansa, of crafty mind, and bearing little love for a brother whose raucous singing frequently interrupted his philosophical fugues, immediately saw an opportunity to deprive Ogam of his prized and well-boasted-about manhood for a fortnight, and challenged him to a contest of womanly love-making, sewing, and hearth sweeping, and for a time there was great mirth in the Red City.
+                    “Dearest Un-Hansa,” spoke YISUN, after a moment, as they strolled along an expanse of fractal glass and cold fire, “Art thou not flesh of my self love? Springst thou not from my recursive womb?”
+                    “Sprung I from your brow, for it is my lot in life to beat my hands against it in return for ejecting me,” said Hansa, in jest, but in truth he listened.
+                    “Knowst thou the meaning of my name Y-S-U-N is the true name of sovereignty?” spoke YISUN plainly.
+                    ” I do,” spoke Hansa, for it was true.
+                    YISUN then assumed a speaking form that was bright and very cold, from her breath she inhaled the void, and when she exhaled, beautiful water came forth from her pliant lips in great rushing gasps, and there was a sound like a clear bell that meant emptiness. Hansa was very moved by this display and watched as the shining water curved and bent upon itself and crystallized, and suddenly before the pair was a great, beautiful house, translucent and all filled with light of many colors.
+                    “Observe my work,” said YISUN, pleased.
+                    “It is an astounding work,” said Hansa, clearly impressed. They strode inside the house at YISUN’s bidding. The walls were clear and smooth as crystal, and warm to the touch. It had a wide hall, and a full hearth, and was full of light and air, and the openness of the place with the starkness of the void was incredibly pleasing. Hansa would have given half his lordship for such a house, in truth, for his own was a dark and cramped tomb of iron and dust.
+                    “Observe again,” said YISUN, with a keen eye. Hansa did, and as he looked closer, he saw the walls, the floor, the vaulted roof, the wall coverings, and even the altar with the flowers in the visiting hall were all made of water – water as clear and still and solid as smooth and perfect glass.
+                    “Water, lord?” spoke Hansa, sensing some purpose.
+                    “What,” spoke YISUN playfully, “is the meaning of this allegory?”
+                    They reposed for a while as Hansa thought, in the resting hall of that great water house, and gazed through the shining rim of that house across the great void, where the empty sky was perfect in its nothingness. The house rung gently like a bell and it was pleasing to Hansa as he sat in his woman’s flesh and thought.
+                    After a while, he said this:
+                    “The house is a man’s life.”
+                    “Why this?” answered YISUN, as was the fashion.
+                    “Because although it is very beautiful and filled with many fine things, it is only water, after all. It would be poor to rely on its existence –  it is only water pretending to be a house. In truth, there is no real house here at all, just as there is no Hansa, or no plums.”
+                    “This is a good answer,” said YISUN, and made a small motion with her long white fingers, and smiled.
+                    “It is an infuriating answer,” said Hansa, his mood darkening, and his borrowed brow furrowing, “As is common with you. How can one grant themselves the pleasure to enjoy such a fine thing? It sparkles and shines like a gorgeous jewel, but its sparkle is an intimate falsehood.”
+                    “Death is my gift to you,” spoke YISUN in reply.
+                    “What’s the point,” spoke Hansa, bitterly,”Of such a fine house, if it is only a lie? What is the point of Hansa, if Hansa is only a lie?”
+                    “I am a fine liar,” spoke YISUN in reply.
+                    Hansa was silent a moment.
+                    “It is a beautiful house,” he admitted, after some time, “It is a beautiful lie.”
+                    “Our self-realization is the most beautiful lie there is. I am the most conceited and prime liar. Lies are the enemy of stagnation and my self-salvation. How could we appreciate the shining beauty of my house of lies,” spoke YISUN, arching her supple back, “if there was always such a house? How could we appreciate Hansa if there was always such a Hansa?”
+                    They sat in stillness a while longer.
+                    “In truth, we would get very bored,” said Hansa, after a while.
+                    “In truth, we would,” said YISUN.*/
+                case 18:
+                    msg += ' __The lie of the small light__\n\nHansa was of sound mind and proud soul and only once asked YISUN a conceited question, when he was very old and his bones were set about with dust and bent with age. It was about his own death.\n\n“Lord,” said Hansa, allowing a doubt to blossom, “What is ending?”\nIt was said later he regretted this question but none could confirm the suspicion.\n“Ending is a small light in a vast cavern growing dim,” said YISUN, plainly, as was the manner.\n\n“When the light goes out, what will happen to the cavern?”\n“It and the universe will cease to exist, for how can we see anything without any light, no matter how small?” said YISUN.\nHansa was somewhat dismayed, but sensed a lesson, as was the manner.\n\n“Darkness is the natural state of caverns,” said he, vexingly, “if I were a cavern, I would be glad to be rid of the pest of light and exist obstinately anyway!”\n“Hansa is observant,” said YISUN.';    break;
+            }        
+        }
+      //+ Spasms Easter Egg
+        else if ( firstCmd === 'spasms' ) 
+        {
+            let verse = typeof args[1] === 'undefined' ? 0 /*//- Math.floor( Math.random() * 30 )*/ : Number( args[1] );
+
+            switch ( verse )
+            {
+                case 8:
+                    msg += "YISUN was questioned once by their disciples at their speaking house. The questions were the following:\n\n'What is the ultimate reason for existence?'\nTo which YISUN replied, 'Self-deception.'\n\n'How can a man live in perfect harmony?'\nTo which YISUN replied, 'Non-existence.'\n\n'What is the ultimate result of all action?'\nTo which YISUN replied, 'Futility.'\n\n'How best can we serve your will?'\nTo which YISUN replied, 'Kindly ignore my first three answers.'";    break;
+                case 30:
+                    msg += "Prim and the Mendicant Knight";    break;
+                case 31:
+                    msg += "A Conquering King must come with violence in his self of selves. He must splay the guts of his enemy with no weapon but his heartstrings. His lips must spit sweet music that pulverizes his enemies, and his eyes must tell a brain-cleaving tale of loveliness. He must quench the sword of his tongue in the love of his enemies.\n\tSpasms 31:12";    break;
+            }
+         }
+      // Areas of improvement
+        else if ( firstCmd === 'test' )
+        {
+            msg += '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving of Royalty.\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
+            msg += '\n\nKnown weakenesses of the White God Arenjii are:';
+              msg += '\n\t-__Obstacle Multiplication__: Several new verses to the prayer of rolling have been uncovered, invoke them with `ox#`, `ds#` and `bl`.';
+              msg += '\n\t-__Dice Math__: In additon the `ad#`, `fk#` and `di` verses have been unlocked, with so many new commands it may be possible to overwhelm him.';
+              msg += '\n\t-__Rerolls__: The `~fate`, `~callon` and `~grace` mantras are now functional. Make sure Un-Arenjii honours your well earned rerolls.';
+              msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved. find a friend, better two, and watch Un-Arenjii squirm!';
+            msg += '\nReach heaven through violence.';
         }
       // Versus Test
         else if ( firstCmd === 'vs' )
@@ -690,56 +860,34 @@ client.on( 'message', ( message ) =>
           // No mentions
             if ( message.mentions.users.keyArray().length === 0 )
             {
-                if ( message.author.id === config.boss )
+                contenders = client.rollMap.get( message.channel.id );
+
+                if ( contenders !== null && contenders.length > 1 )
                 {
-                    msg += 'The Boss vs a test roll';
-
-                    let Boss = client.rollMap.get( message.author.id );
-
-
-                    let DoSA = ( Boss.successes + Boss.astroResult - Boss.ObAddition ) / Boss.ObMultiplier;
-                    let DoSB = ( testRoll.successes + testRoll.astroResult - testRoll.ObAddition ) / testRoll.ObMultiplier;
-                    
-                    if ( DoSA >= DoSB )
-                    {
-                        contenders.push( Boss, testRoll );
-                        firstDoS = DoSA;
-                    }
-                    else
-                    {
-                        contenders.push( testRoll, Boss );
-                        firstDoS = DoSB;
-                    }
+                    msg += 'Let the games begin!';
+                    client.rollMap.set( message.channel.id, [] );
                 }
                 else
-                {   msg += 'please specify whos roll you wish to compare against';   }
+                {
+                    msg += '\nThe VS Stack is empty...';
+                }
             }
           // One mention
             else if ( message.mentions.users.keyArray().length === 1 )
             {
                 let contA = client.rollMap.get( message.author.id );
                 let contB = client.rollMap.get( message.mentions.users.firstKey() );
-                
-                if ( contA && contB && contA.owner != contB.owner )
+
+                if ( contA !== null && contB !== null )
                 {
-                    msg += `You VS ${contB.owner}`;
-                    
-                    let DoSA = ( contA.successes + contA.astroResult - contA.ObAddition ) / contA.ObMultiplier;
-                    let DoSB = ( contB.successes + contB.astroResult - contB.ObAddition ) / contB.ObMultiplier;
-                    
-                    if ( DoSA >= DoSB )
-                    {
-                        contenders.push( contA, contB );
-                        firstDoS = DoSA;
-                    }
-                    else
-                    {
-                        contenders.push( contB, contA );
-                        firstDoS = DoSB;
-                    }
+                    contenders.push( contA, contB );
+                    msg += `You VS ${contB.owner.username}`;
                 }
                 else
-                {   msg += '\nRolls not found';   }
+                {
+                    msg += contA === null ? "\nYou haven't made a roll yet." : "";
+                    msg += contB === null ? `\n${message.mentions.users.array()[0].username} has not made a roll yet.` : "";
+                }
             }
           // 2+ mentions
             else
@@ -748,85 +896,76 @@ client.on( 'message', ( message ) =>
                 {
                     let cont = client.rollMap.get( mention.id );
 
-                    if ( cont ) //+ don't add the same roll twice. 
+                    if ( cont !== null ) //+ don't add duplicate mentions. 
                     {
-                        
-                        let DoS = ( cont.successes + cont.astroResult - cont.ObAddition ) / cont.ObMultiplier;
-
-                        if ( firstDoS === undefined )
-                        {
-                            contenders.push( cont );
-                            firstDoS = DoS;
-                        }
-                        else if ( DoS >= firstDoS )
-                        {
-                            contenders.splice( 0, 0, cont );
-                            firstDoS = Dos;
-                        }
-                        else 
-                        {   contenders.push( cont );   }
+                        contenders.push( cont );
+                    }
+                    else
+                    {
+                        msg += `\n${mention.username} hasn't made a roll yet`;
                     }
                 });
 
                 if ( contenders.length < 2 )
-                {   msg += 'Insufficient contestants.';   }
+                    {   msg += 'Insufficient contestants.';   }
                 else if ( contenders.length === 2 )
-                {   msg += `${contenders[0].owner} VS ${contenders[1].owner}`;   }
+                    {   msg += `${contenders[0].owner.username} VS ${contenders[1].owner.username}`;   }
                 else
-                {   msg += `A free for all!`;   }
+                    {   msg += `A free for all!`;   }
             }
 
-          // Output
-            if ( contenders.length >= 2 )
+            if ( contenders !== null && contenders.length > 0 )
             {
-                //+ let winner = '';
+              //order by degree of success
+                contenders.sort( function( a, b ) { return ( ( b.successes + b.astroResult - b.ObAddition ) / b.ObMultiplier - a.successes + a.astroResult - a.ObAddition ) / a.ObMultiplier; } );
+                firstDoS = ( contenders[0].successes + contenders[0].astroResult - contenders[0].ObAddition ) / contenders[0].ObMultiplier;
 
-                contenders.forEach( ( contestant, cI, cC ) =>
+              // Output
+                if ( contenders.length >= 2 )
                 {
-                    if ( cI === 0 )
+                    //+ let winner = '';
+
+                    contenders.forEach( ( contestant, cI, cC ) =>
                     {
-                        contestant.obstacle = ( cC[1].successes + cC[1].astroResult - cC[1].ObAddition ) / cC[1].ObMultiplier;
-                    }
-                    else
-                    {   contestant.obstacle = firstDoS;   }
+                        contestant.obstacle = firstDoS;
 
-                    let totalSuc = contestant.successes + contestant.astroResult;
-                    let totalOb = contestant.obstacle * contestant.ObMultiplier + contestant.ObAddition;
-                    let totalPool = contestant.exponent + contestant.nonArtha + contestant.astroDice + contestant.helperDice;
+                        let totalSuc = contestant.successes + contestant.astroResult;
+                        let totalOb = contestant.obstacle * contestant.ObMultiplier + contestant.ObAddition;
+                        let totalPool = contestant.exponent + contestant.nonArtha + contestant.astroDice + contestant.helperDice;
 
-                    msg += `\n${contestant.owner} rolled ${totalSuc} against and Ob of ${totalOb}`
+                        msg += `\n${contestant.owner} rolled ${totalSuc} against and Ob of ${totalOb}`
 
-                    if ( contestant.ObMultiplier > 1 || contestant.ObAddition > 0 )
-                    {
-                        msg +=  ` [${Math.floor( 100 * contestant.obstacle ) / 100}`;
-                        msg += contestant.ObMultiplier > 1 ? ` * ${contestant.ObMultiplier}` : '';
-                        msg += contestant.ObAddition !== 0 ? ` + ${contestant.ObAddition}]` : ']';
-                    }
-                    
-                    if ( contestant.beginnersLuck )
-                    {
-                        let testDiff = RDC( totalPool, totalOb / 2 );
-
-                        if ( testDiff === 'Routine' )
+                        if ( contestant.ObMultiplier > 1 || contestant.ObAddition > 0 )
                         {
-                            msg += totalSuc >= totalOb ? `, passing by ${totalSuc - totalOb} and showing Aptitude for a new Skill` : `, failing, but advancing towards a new Skill`
+                            msg +=  ` [${Math.floor( 100 * contestant.obstacle ) / 100}`;
+                            msg += contestant.ObMultiplier > 1 ? ` * ${contestant.ObMultiplier}` : '';
+                            msg += contestant.ObAddition !== 0 ? ` + ${contestant.ObAddition}]` : ']';
+                        }
+                        
+                        if ( contestant.beginnersLuck )
+                        {
+                            let testDiff = RDC( totalPool, totalOb / 2 );
+
+                            if ( testDiff === 'Routine' )
+                            {
+                                msg += totalSuc >= totalOb ? `, passing by ${totalSuc - totalOb} and showing Aptitude for a new Skill` : `, failing, but advancing towards a new Skill`
+                            }
+                            else
+                            {
+                                msg += totalSuc >= totalOb ? `, passing a ${testDiff} test for the Root Stat by ${totalSuc - totalOb}` : `, failing a ${testDiff} test for the Root Stat`
+                            }
                         }
                         else
                         {
-                            msg += totalSuc >= totalOb ? `, passing a ${testDiff} test for the Root Stat by ${totalSuc - totalOb}` : `, failing a ${testDiff} test for the Root Stat`
+                            msg += totalSuc >= totalOb ? `, passing a ${RDC( totalPool, totalOb )} test by ${totalSuc - totalOb}` : `, failing a ${RDC( totalPool, totalOb )} test`;
                         }
-                    }
-                    else
-                    {
-                        msg += totalSuc >= totalOb ? `, passing a ${RDC( totalPool, totalOb )} test by ${totalSuc - totalOb}` : `, failing a ${RDC( totalPool, totalOb )} test`;
-                    }
 
-                    client.rollMap.set( contestant.owner, contestant )
-                });
+                        client.rollMap.set( contestant.owner, contestant )
+                    });
+                }
+                else 
+                    {   msg += '/nYou need two to tango.';   }
             }
-            else 
-            {   msg += '/nYou need two to tango.';   }
-            
             /*
             In a versus test,
             Everyone has to roll before anyone knows their base Ob.
@@ -846,32 +985,23 @@ client.on( 'message', ( message ) =>
             switch ( Number( args[1] ) )
             {
                 case 1:
-                    msg += 'The name of YISUN that can be spoken is not the name of YISUN.\nThe name that can be named is not the eternal name!\nNameless: it is the source of Is and Is Not.\nThe Nameless has nine hundred and ninety nine thousand names that combine into the true name of God:\nI';
-                    break;
+                    msg += 'The name of YISUN that can be spoken is not the name of YISUN.\nThe name that can be named is not the eternal name!\nNameless: it is the source of Is and Is Not.\nThe Nameless has nine hundred and ninety nine thousand names that combine into the true name of God:\nI';    break;
                 case 2:
-                    msg += 'When the people of the world all know Truth, there arises the recognition of Lies. When they know there is such a thing as Illusion, there arises the idea of Reality.\n\nTherefore Reality and Illusion produce each other, Truth and Lies trick each other.';
-                    break;
+                    msg += 'When the people of the world all know Truth, there arises the recognition of Lies. When they know there is such a thing as Illusion, there arises the idea of Reality.\n\nTherefore Reality and Illusion produce each other, Truth and Lies trick each other.'; break;
                 case 3:
-                    msg += 'To speak general truths about YISUN is to lie intimately; in truth YISUN is the unparalleled master of the fundamental art of lying. The best practice of lying is self deception.';
-                    break;
+                    msg += 'To speak general truths about YISUN is to lie intimately; in truth YISUN is the unparalleled master of the fundamental art of lying. The best practice of lying is self deception.';    break;
                 case 4:
-                    msg += 'The Nameless way of YISUN is empty.\nWhen utilised, it is not filled up.\nInfinitely deep! This is YISUN: it is everything, including itself.';
-                    break;
+                    msg += 'The Nameless way of YISUN is empty.\nWhen utilised, it is not filled up.\nInfinitely deep! This is YISUN: it is everything, including itself.'; break;
                 case 5:
-                    msg += 'The space between The Wheel and void\nIs it not like a bellows?\nEmpty, and yet never exhausted\nIt moves, and produces more';
-                    break;
+                    msg += 'The space between The Wheel and void\nIs it not like a bellows?\nEmpty, and yet never exhausted\nIt moves, and produces more';  break;
                 case 6:
-                    msg += 'The valley spirit, undying\nIs called the Mystic YS\n\nThe gate of the Mystic Female\nIs called the root of The Wheel and Void\n\nIt flows continuously, barely perceptible\nUtilize it; it is never exhausted.';
-                    break;
+                    msg += 'The valley spirit, undying\nIs called the Mystic YS\n\nThe gate of the Mystic Female\nIs called the root of The Wheel and Void\n\nIt flows continuously, barely perceptible\nUtilize it; it is never exhausted.';   break;
                 case 7:
-                    msg += 'The Wheel and Void are everlasting\nThe reason the Wheel and Void can last forever\nIs that they do not exist for themselves\nThus they can last forever.';
-                    break;
+                    msg += 'The Wheel and Void are everlasting\nThe reason the Wheel and Void can last forever\nIs that they do not exist for themselves\nThus they can last forever.'; break;
                 case 8:
-                    msg += 'Be fire: A burning will that consumes everything in its path to survive. Dance a dance of destruction and rebirth';
-                    break;
+                    msg += 'Be fire: A burning will that consumes everything in its path to survive. Dance a dance of destruction and rebirth'; break;
                 case 9:
-                    msg += 'YS ATUN VRAMA PRESH';
-                    break;
+                    msg += 'YS ATUN VRAMA PRESH';   break;
             }
         }
       // Standard Test
@@ -908,7 +1038,7 @@ client.on( 'message', ( message ) =>
                             {
                                 currPool.astroDice++;
 
-                                if ( amount >= 2 )
+                                if ( amount >= 5 )
                                 {
                                     currPool.astroDice++;
                                 }
@@ -922,8 +1052,19 @@ client.on( 'message', ( message ) =>
                             }
                             break;
                         case 'bn':  // Boon; Persona Point - +1D-3D to a roll
-                            //+ disable after 1 invocation
-                            amount > 3 ? currPool.arthaDice += 3 : currPool.arthaDice += amount;
+                            if ( currPool.booned < 3 )
+                            {
+                                if ( amount + currPool.booned >= 3 )
+                                {
+                                    currPool.arthaDice = 3;
+                                    currPool.booned = 3;
+                                }
+                                else
+                                {
+                                    currPool.arthaDice += amount;
+                                    currPool.booned += amount;
+                                }
+                            }
                             break;
                         case 'di':  // Divine Inspiration; Deeds Point - doubles base Exponen
                             if ( !currPool.inspired )
@@ -957,8 +1098,6 @@ client.on( 'message', ( message ) =>
                         case 'ox':  // Base Obstacle multiplier
                             currPool.ObMultiplier *= amount > 0 ? amount : 1;
                             break;
-                        case 'tr':  // set Test Roll
-                            isTestRoll = message.author.id === config.boss;
                         case 'vs':  // this is a VS test?
                             isVS = true;
                             break;
@@ -1033,9 +1172,9 @@ client.on( 'message', ( message ) =>
                 let r = roll();
 
                 if ( r >= currPool.shade ) 
-                {   currPool.successes++;   }
+                    {   currPool.successes++;   }
                 if ( currPool.isOpenEnded && r === 6 ) 
-                {   d--;   }
+                    {   d--;   }
 
                 currPool.basePool.push( r );
             }
@@ -1043,46 +1182,37 @@ client.on( 'message', ( message ) =>
           // VS Test
             if ( isVS )
             {
-                /*let prevPool = client.rollMap.get( mentioned user's roll );
+                let vsRolls = client.rollMap.get( message.channel.id );
 
-                if ( prevPool !== null )
+                if ( vsRolls === null )
                 {
-                  // Set roll obstacles
-                    prevPool.obstacle = currPool.successes + currPool.astroResult;
-                    currPool.obstacle = prevPool.successes + prevPool.astroResult;
-
-                  // Determine Winner
-
-                  // Output
-                    let VSmsg =  `\n\n`;
+                    vsRolls = [];
                 }
-                else
-                {
-                    msg += '\nno previous roll to compare with, use the `~vs` command to try again';
-                }*/
+
+                vsRolls.push( currPool );
+
+                client.rollMap.set( message.channel.id, vsRolls );
+
+                msg += `${message.author.username} added a roll to the VS pile.`;
             }
 
           // Output
-            msg += currPool.printPool();
+            if ( !isVS )
+            {
+                msg += currPool.printPool();
+            }
 
           // Save Roll
             if ( saveRoll )
             {
-                //- client.rollMap.set( message.channel.id, currPool ); // is there any reason to save this?
+                //- client.rollMap.set( message.channel.id, currPool ); //- is there any reason to save this?
                 client.rollMap.set( message.author.id, currPool );
-            }
-
-            if ( isTestRoll )
-            {
-                testRoll = currPool;
-                testRoll.owner = 'Test';
-                msg = `Sure thing, Boss!\n${msg}\nThis is now the Versus Test Roll`;
             }
         }
       // Invalid command
         else
         {
-            msg += 'That\'s not a valid command.';
+            msg += "That's not a valid command.";
         }
 
       // Output
@@ -1098,12 +1228,6 @@ function roll ()
     return  1 + Math.floor( Math.random() * 6 );
 }
 
-//+ use this once Fate and Callon are tested
-function reroll ( prevPool, shade, open)
-{
-    
-}
-
 function RDC (Pool, Obstacle)
 {
     /*
@@ -1112,11 +1236,11 @@ function RDC (Pool, Obstacle)
         if diceRolled > routineTest.length us use diceRolled-3?
     */
     if ( Obstacle > Pool )
-    {   return 'Challenging';   }
+        {   return 'Challenging';   }
     else if ( Obstacle > routineTest[Pool] )
-    {   return 'Difficult';   }
+        {   return 'Difficult';   }
     else
-    {   return 'Routine';   }
+        {   return 'Routine';   }
 }
 
 // WARNING: Illegible mess.
