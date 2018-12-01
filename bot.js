@@ -11,32 +11,35 @@ const Enmap = require('enmap');
 class diePool
 {
   // Constructor
-    constructor( ard = 0, asd = 0, asp = [], asr = 0, bl = false, bn = 0, bp = [], co = false, ex = 0, fd = false, gr = false, hd = 0, hx = [], hp = [], ins = false, oe = false, na = 0, oa = 0, om = 1, ob = 0, ow = '', sh = 4, sc = 0, tr = 0 )
+    constructor( )
     {
-        this.arthaDice = ard;       // number of dice added through spending Artha
-        this.astroDice = asd;       // number of dice added through Astrology FoRK
-        this.astroPool = asp;       // results of astrological FoRKs/Help
-        this.astroResult = asr;     // Successes gained or lost through Astrology
-        this.beginnersLuck = bl;    // do you actually have the right skill for the job?
-        this.booned = bn;           // How many Persona Points have been spent on this roll?
-        this.basePool = bp;         // array of dice results, includes FoRKs, Artha Dice, Advantage Dice
-        this.calledOn = co;         // if a Call-on Trait has been used on this roll.
-        this.exponent = ex;         // BASE number of dice rolled, Exponent of the roll.
-        this.fated = fd;            // if a Fate point has been spent on this roll
-        this.graced = gr;           // if a Saving Grace has been employed on this roll
-        this.helperDice = hd;       // number of dice added by helpers
-        this.helperExponent = hx;   // the exponent of your helpers
-        this.helperPool = hp;       // how much your companions 'helped' you
-        this.inspired = ins;        // has Divine Inspiration struck this roll?
-        this.isOpenEnded = oe;      // do dice explode?
-        this.nonArtha = na;         // the number of non-artha dice added to the roll
-        this.ObAddition = oa;       // added to Base Obstacle after it's multiplied
-        this.ObMultiplier = om;     // for all you double Ob needs.
-        this.obstacle = ob;         // BASE obstacle of the roll
-        this.owner = ow;            // Who rolled the dice
-        this.shade = sh;            // shade of the roll, 4 = black, 3 = grey, 2 = white
-        this.successes = sc;        // the number of successes gained through rolls
-        this.totalRolled = tr;      // how many dice ultimately end up being rolled (before rerolls)
+        this.arthaDice = 0;            // number of dice added through spending Artha
+        this.astroDice = 0;            // number of dice added through Astrology FoRK
+        this.astroPool = [];           // results of astrological FoRKs/Help
+        this.astroResult = 0;          // Successes gained or lost through Astrology
+        this.beginnersLuck = false;    // do you actually have the right skill for the job?
+        this.booned = 0;               // How many Persona Points have been spent on this roll?
+        this.basePool = [];            // array of dice results, includes FoRKs, Artha Dice, Advantage Dice
+        this.calledOn = false;         // if a Call-on Trait has been used on this roll.
+        this.exponent = 0;             // BASE number of dice rolled, Exponent of the roll.
+        this.fated = false;            // if a Fate point has been spent on this roll
+        this.graced = false;           // if a Saving Grace has been employed on this roll
+        this.helperDice = 0;           // number of dice added by helpers
+        this.helperExponent = [];      // the exponent of your helpers
+        this.helperPool = [];          // how much your companions 'helped' you
+        this.openEndedDice = 0;        // how many dice or independantly open-ended (before explosions)
+        this.openEndedPool = [];       // dice that are open ended regardless of the base roll
+        this.inspired = false;         // has Divine Inspiration struck this roll?
+        this.isOpenEnded = false;      // do dice explode?
+        this.nonArtha = 0;             // the number of non-artha dice added to the roll
+        this.ObAddition = 0;           // added to Base Obstacle after it's multiplied
+        this.ObMultiplier = 1;         // for all you double Ob needs.
+        this.obstacle = 0;             // BASE obstacle of the roll
+        this.owner = 'Hugh Mann';      // Who rolled the dice
+        this.reps = 0;                 // rank in the VS Stack
+        this.shade = 4;                // shade of the roll, 4 = black, 3 = grey, 2 = white
+        this.successes = 0;            // the number of successes gained through rolls
+        this.totalRolled = 0;          // how many dice ultimately end up being rolled (before explosions)
     }
 
   // DiePool.printPool()
@@ -48,14 +51,11 @@ class diePool
         switch ( this.shade )
         {
             case 4:
-                msg += ' Black ';
-                break;
+                msg += ' Black ';    break;
             case 3:
-                msg += ' Grey ';
-                break;
+                msg += ' Grey ';    break;
             case 2:
-                msg += ' White ';
-                break;
+                msg += ' White ';    break;
         }
 
         msg += this.isOpenEnded ? 'Open-Ended dice' : 'shaded dice';
@@ -70,9 +70,15 @@ class diePool
         if ( this.astroDice > 0 )
         {
             msg += '\nThe Stars were ';
-            msg += this.astroResult >0 ? 'right' : 'wrong';
-            msg += ` and their fate gives them ${this.astroResult} success this roll\nAstro Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`;
+            msg += this.astroResult > 0 ? 'right' : 'wrong';
+            msg += ` and their fate gives them ${this.astroResult} success this roll\nFortune Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`;
             //-msg += '\n' + this.astroPool.toString();
+        }
+
+      //+ Independently Open-Ended dice
+        if ( this.openEndedDice > 0 )
+        {
+            msg += `\nOpen-Ended: ${diceSugar( this.openEndedPool, this.shade, 1)}`;
         }
 
       // determine helper test difficulty
@@ -100,17 +106,17 @@ class diePool
 
         if ( this.obstacle > 0 )
         {
-            msg += totesSuccessess >= totesObstacle ? `\nThats a success with a margin of ${totesSuccessess - totesObstacle} and they got to mark off a ` : '\nTraitorous dice! Thats a *failure*...\nAt least they got to mark off a ';
+            msg += totesSuccessess >= totesObstacle ? `\nThats a success with a margin of ${totesSuccessess - totesObstacle} and they got to mark off a ` : `\nTraitorous dice! Thats a *failure* of ${totesObstacle - totesSuccessess}...\nAt least they got to mark off a `;
 
             let bl = RDC( this.exponent + this.nonArtha + this.astroDice + this.helperDice, this.obstacle + this.ObAddition );
 
             if ( this.beginnersLuck )
             {
-                msg += bl  === 'Routine' ? 'test towards learning a new Skill!' : `${bl} test towards advancing their Root Stat!`;
+                msg += bl === 'Routine' ? 'test towards learning a new Skill!' : `${bl} test towards advancing their Root Stat!`;
             }
             else
             {
-                msg += bl;
+                msg += `${bl} test.`;
             }
         }
         else
@@ -121,7 +127,7 @@ class diePool
             }
             else
             {
-                msg += totesSuccessess > 0 ? `\nThats ${totesSuccessess} succes(es)!` : '\nNo successes? looks like things are about to get interesting!';
+                msg += totesSuccessess > 0 ? `\nThats ${totesSuccessess} succes${totesSuccessess === 1 ? 's' : 'es'}!` : '\nNo successes? looks like things are about to get interesting!';
             }
         }
         return msg;
@@ -138,6 +144,9 @@ const routineTest = [0, 1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 
 
 const prefix = config.prefix;
 
+const rollPattern = RegExp( '([b|g|w])([0-9]{1,2})(!?)', 'i' );
+const testPattern = RegExp( '([a-z\+]{1,2})([0-9]{0,2})', 'i' );
+
 client.on ( "ready", () => { console.log( "I am ready!" ); });
 
 client.on( 'message', ( message ) =>
@@ -146,22 +155,251 @@ client.on( 'message', ( message ) =>
     {
       // RegEx Setup
         //- let args = message.split( ' ' );
-        let args = message.content.slice( config.prefix.length ).trim().split(/ +/g);
+        let args = message.content.toLowerCase().slice( config.prefix.length ).trim().split(/ +/g);
         let firstCmd = args[0];
 
         let isVS = false;
         let saveRoll = true;
 
-        let msg = ''; //- message.author.id === config.boss ? 'Sure thing, Boss!\n' : '';
+        let msg = '';
 
-        const rollPattern = RegExp( '([b|g|w])([0-9]{1,2})(!?)', 'i' );
-        const testPattern = RegExp( '([a-z\+]{1,2})([0-9]{0,2})', 'i' );
-
-      // Help
-        if ( firstCmd.toLowerCase() === 'help' )
+      // Standard Test
+        if ( rollPattern.test( firstCmd ) )
         {
-            msg += `**${message.author.username} has queried the cosmos.**`;
+        // setup
+            let firstExp = rollPattern.exec( firstCmd );
 
+            var currPool = new diePool();
+
+            currPool.owner = message.author;
+            currPool.exponent = Number( firstExp[2] );
+            //- currPool.totalRolled = currPool.exponent;
+            currPool.isOpenEnded = firstExp[3] === '!';
+
+        // read and interpret each token
+            args.forEach( token =>
+            {
+                let flag = testPattern.exec( token.toLowerCase() );
+
+                if ( flag )
+                {
+                    let amount = Number( flag[2] );
+
+                    switch ( flag[1] )
+                    {
+                        case 'ad':  // Advantage dice
+                            //+ restrict to +2D
+                        case 'fk':  // FoRK dice
+                            currPool.nonArtha += amount;
+                            break;
+                        case 'as':  // Astrology
+                            if ( amount !== 0 && currPool.astroDice === 0)
+                            {
+                                currPool.astroDice++;
+
+                                if ( amount >= 5 )
+                                {
+                                    currPool.astroDice++;
+                                }
+                            }
+                            break;
+                        case 'ar':
+                            currPool.arthaDice += amount;
+                            break;
+                        case 'bl':  // Beginner's Luck
+                            if ( !currPool.beginnersLuck )
+                            {
+                                currPool.ObMultiplier *= 2;
+                                currPool.beginnersLuck = true;
+                            }
+                            break;
+                        case 'bn':  // Boon; Persona Point - +1D-3D to a roll
+                            if ( currPool.booned < 3 )
+                            {
+                                if ( amount + currPool.booned >= 3 )
+                                {
+                                    currPool.arthaDice = 3;
+                                    currPool.booned = 3;
+                                }
+                                else
+                                {
+                                    currPool.arthaDice += amount;
+                                    currPool.booned += amount;
+                                }
+                            }
+                            break;
+                        case 'di':  // Divine Inspiration; Deeds Point - doubles base Exponen
+                            if ( !currPool.inspired )
+                            {
+                                currPool.arthaDice += currPool.exponent;
+                                currPool.inspired = true;
+                            }
+                            break;
+                        case 'ds':  // Disadvantage
+                            currPool.ObAddition += amount;
+                            break;
+                        case 'he':  // Helper dice
+                            if ( amount > 6 )
+                            {
+                                currPool.helperPool.push( [0, 0] );
+                                currPool.helperDice += 2;
+                            }
+                            else
+                            {
+                                currPool.helperPool.push( [0] );
+                                currPool.helperDice++;
+                            }
+                            currPool.helperExponent.push( amount );
+                            break;
+                        case 'ns':  // No save
+                            saveRoll = false;
+                            break;
+                        case 'ob':  // Base obstacle
+                            currPool.obstacle = amount;
+                            break;
+                        case 'oe':
+                            currPool.openEndedDice += amount;
+                            break;
+                        case 'ox':  // Base Obstacle multiplier
+                            currPool.ObMultiplier *= amount > 0 ? amount : 1;
+                            break;
+                        case 'vs':  // this is a VS test?
+                            isVS = true;
+                            break;
+                    }
+                }
+            });
+
+        // Find total dice rolled
+            currPool.totalRolled = currPool.exponent + currPool.arthaDice + currPool.nonArtha + +currPool.openEndedDice + currPool.astroDice + currPool.helperDice;
+
+        // determine shade
+            switch ( firstExp[1].toLowerCase() )
+            {
+                case 'b':
+                    currPool.shade = 4;
+                    break;
+                case 'g':
+                    currPool.shade = 3;
+                    break;
+                case 'w':
+                    currPool.shade = 2;
+                    break;
+            }
+
+        // roll astrology dice
+            for ( a = 0; a < currPool.astroDice; a++ )
+            {
+                let astRoll = roll();
+                currPool.astroResult += astRoll >= currPool.shade;
+                currPool.astroPool.push( astRoll );
+
+                while( astRoll === 6 )
+                {
+                astRoll = roll();
+                currPool.astroResult += astRoll >= currPool.shade;
+                currPool.astroPool.push( astRoll );
+                }
+
+                if ( astRoll === 1 )
+                {
+                astRoll = roll();
+                currPool.astroResult -= astRoll < currPool.shade;
+                currPool.astroPool.push( astRoll );
+                }
+            }
+
+        // roll Independantly Open-Ended dice
+            for ( o = 0; o < currPool.openEndedDice; o++ )
+            {
+                let openRoll = roll();
+
+                if ( openRoll >= currPool.shade ) 
+                    {   currPool.successes++;   }
+                if ( openRoll === 6 ) 
+                    {   o--;   }
+
+                currPool.openEndedPool.push( openRoll );
+            }
+
+        // roll helper dice
+            for ( h = 0; h < currPool.helperPool.length; h++ )
+            {
+                let helpRoll = [];
+
+                for ( h2 = 0; h2 < currPool.helperPool[h].length; h2++ )
+                {
+                    let r = roll();
+                    currPool.successes += r >= currPool.shade;
+                    helpRoll.push( r );
+
+                    while( currPool.isOpenEnded && r === 6 )
+                    {
+                        r = roll();
+                        currPool.successes += r >= currPool.shade;
+                        helpRoll.push( r );
+                    }
+                }
+
+                currPool.helperPool[h] = helpRoll;
+            }
+
+        // Roll Exponent dice
+            for ( d = 0; d < Number( currPool.exponent ) + Number( currPool.arthaDice ); d++ )
+            {
+                let r = roll();
+
+                if ( r >= currPool.shade ) 
+                    {   currPool.successes++;   }
+                if ( currPool.isOpenEnded && r === 6 ) 
+                    {   d--;   }
+
+                currPool.basePool.push( r );
+            }
+
+        // VS Test
+            if ( isVS )
+            {
+                let vsRolls = client.rollMap.get( message.channel.id );
+
+                if ( vsRolls === null )
+                {
+                    vsRolls = [];
+                }
+                else
+                {
+                    vsRolls.forEach ( participant =>
+                    {
+                        if ( participant.reps <= currPool.reps )
+                        {
+                            currPool.reps++;
+                        }
+                    });
+                }
+
+                vsRolls.push( currPool );
+
+                client.rollMap.set( message.channel.id, vsRolls );
+
+                msg += `${currPool.reps === 0 ? currPool.owner.username : currPool.owner.username + ' ' + currPool.reps} added a roll to the VS pile.`;
+            }
+
+        // Output
+            if ( !isVS )
+            {
+                msg += currPool.printPool();
+            }
+
+        // Save Roll
+            if ( saveRoll )
+            {
+                //- client.rollMap.set( message.channel.id, currPool ); //- is there any reason to save this?
+                client.rollMap.set( message.author.id, currPool );
+            }
+        } 
+      // Help
+        else if ( firstCmd === 'help' )
+        {
           //Flagged
             if ( args[1] )
             {
@@ -228,56 +466,106 @@ client.on( 'message', ( message ) =>
                         msg += '\n__Roll the Dice__';
                         msg += '\nFunction: Rolls a pool of dice';
                         msg += '\nForm: `~X#{!}`';
-                          msg += '\n\t`X` Accepts `b`, `g` or `w`. Determines the Shade (Black, Grey or White respectively) of the roll.';
-                          msg += '\n\t`#` the Exponent of the Test to be rolled [0 to 99]. Dice multipliers like the `di` tag only affect this number.';
+                          msg += '\n\t`X` Accepts `b`, `g` or `w`. Determines the __Shade__ (Black, Grey or White respectively) of the roll.';
+                          msg += '\n\t`#` the __Base Exponent__ of the Test to be rolled [0-99].';
                           msg += '\n\t`!` *optional*; adding this makes the roll Open-Ended';
                         msg += '\nExtra Tags:';
-                          msg += '\n\t`ad#` __Advantage__ Adds `#` dice to the roll, unaffected by dice multipliers';
-                          msg += '\n\t`as#` __Astrology, FoRK__: Adds special Astrology FoRK dice. # = [your Astrology exponent].';
+                          msg += '\n\t`ad#` __Advantage__ Adds `#` advantage dice to the roll.';
+                          msg += '\n\t`ar#` __Artha__ Adds `#` Artha dice to the roll.';
+                          /*Greed: 
+                            - Aids or hinders Resource tests
+                            - 1Pp: add [1-Greed] dice to a roll. Act as Artha Dice.
+                          Grief: 
+                            - 1Dp, add [Grief] dice to a spell/skill song exponent. Independantly Open-Ended.
+                          Hatred: 
+                            - 1/session: may test Hatred in place of any skill or stat if appropriate. Open-Ended.
+                            - 1Dp: add [Hatred] to the roll instead of doubling exponent. Independantly Open-Ended.
+                          Spite:
+                            - 1Dp: add [Spite] dice to a roll.
+                          Corruption: 
+                            - may test Corruption in place of Forte for spell tax
+                            - 1Fp: Corruption Exponent helps skill/stat roll. 
+                            - 1Pp: may test Corruption in place of any skill or stat
+                            - 1Dp: add [Corruption] to the roll instead of doubling exponent.
+                          */
+                        // Rune Casting, Nature of all things also function like this?
+                          msg += '\n\t`as#` __Astrology, FoRK__: Adds special Astrology FoRK dice. # = [Astrology exponent].';
                           msg += "\n\t`bl ` __Beginners' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill";
-                          msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` (3 Maximum) dice to the roll that do no affect difficulty. Unaffected by dice multipliers';
-                          msg += '\n\t`di ` __Divine Inspiration, Deeds Point__: Multiplies Exponent Dice by 2 and counts these extra dice as gained through Artha expenditure.';
-                          msg += '\n\t`ds#` __Disadvantage__: Adds `#` to the Base Obstacle, unaffected by Ob multipliers.';
+                          msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` (3 Max) Artha dice to the roll.';
+                          msg += '\n\t`di ` __Divine Inspiration, Deeds Point__: Adds [Base Exponent] Artha dice to the roll.';
+                          msg += '\n\t`ds#` __Disadvantage__: Adds `#` to the Base Obstacle.';
                           msg += '\n\t`fk#` __FoRK__: Functionally identical to `ad`. See `as` to FoRK in Astrology';
-                          msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10]. if an Obstacle is specified I will say how difficult their test is';
+                          msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10].';
                           msg += '\n\t`ns`  __Not Saved__: Do not save this roll. Several features use your previous roll';
-                          msg += '\n\t`ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#` and returns the difficulty of the test. Obstacle multipliers only affect this number';
+                          msg += '\n\t`ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#`.';
+
+                          msg += '\n\t`oe#` __Open-Ended__: Adds `#` dice to the roll that are Open-Ended independantly of the base roll';
+                          
                           msg += '\n\t`ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle by `#`.';
                           msg += '\n\t`vs ` __Versus Test__: Hide the results of the roll and add it to the VS Pile. Trigger the Versus Test with `~vs`.';
                         msg += "\nNotes:\n\t- Its usually okay to include FoRKs and Advantage dice in your Exponent. The exception being when the `di` tag is included.\n\t- Similarly, unless the `bl` or `ox` tags are included it's alright to forgo the `ds` tag";
                         break;
-                }
+                    case 'rac':
+                        msg += "This feature is in testing and has not been completed yet\n";
+                        msg += '\n__Range and Cover Guide__';
+                        msg += '\nFunction: a quick look up for the mechanics and interations of the various Range and Cover Maneuvers.';
+                        msg += '\nForm: `~rac {action} {action}`';
+                        msg += "\nNotes:\n\t- No actions: Displays a list of recognized maneuver keywords.\n\t- One action: displays the mechanics of the maneuver .\n\t- Two Actions: displays the interaction when the two maneuvers are scripted against eachother.";
+                        break;
+                    case 'fight':
+                    case 'prob':
+                        msg += "This feature has not been implemented yet";    break;
+                    case 'dow':
+                        msg += "This feature is in testing and has not been completed yet\n";
+                        msg += '\n__Duel of Wits Guide__';
+                        msg += '\nFunction: a quick look up for the mechanics and interations of the various Duel of Wits actions.';
+                        msg += '\nForm: `~dow {action} {action}`';
+                        msg += "\nNotes:\n\t- No actions: Displays a list of recognized action keywords.\n\t- One action: displays the mechanics of the action .\n\t- Two Actions: displays the interaction when the two actions are scripted against eachother.";
+                        break;
+                    default:
+                        msg += `I don't have a "${args[1]}" command...`;
+                    }
             }
           //No Flags
             else
             {
                 msg += '\nI am Arenjii, the White God of Progression.';
 
-                msg += '\nAll commands are case insensitive so yell if you like. Speak slowly though, add spaces between tags so I can understand you.';
+                msg += '\n\nAll commands are case insensitive so yell if you like. Speak slowly though, add spaces between tags so I can understand you.';
                 msg += '\nCurly braces `{}` denote optional features explained in the help text for the individual command.';
-                msg += '\nFor more detail on individual commands us `~help {command}`.\n\tExample: `~help vs`.';
+                msg += '\nFor more detail on individual commands use `~help {command}`.\n\tExample: `~help vs`.';
 
-                msg += '\n`~co`: See `~callon`';
+                msg += '\n\n`~co`: See `~callon`';
                 msg += '\n`~callon`: __Call On Trait__ rerolls all traitor dice. Tracked separatetly from Saving Grace.';
                 msg += '\n`~diff X Y`: See `difficulty`';
                 msg += '\n`~difficulty X Y`: __Difficulty Calculator__ Returns if a roll of `X` dice against an Ob of `Y` is Routine, Difficult or Challenging.';
                 msg += '\n`~dof {tags...}`: __Die of Fate__ Rolls a single die.';
+                msg += '\n`~dow` __Duel of Wits Guide__ **In Testing**';
                 msg += '\n`~fate`: See `~luck`.';
-                msg += '\n`~grace`: __Saving Grace, Deeds Point__: Rerolls all traitor dice, tracked separately from Call-on.';
+                msg += '\n`~fight` __Fight! Guide__ **Unimplemented**';
+                msg += '\n`~grace`: __Saving Grace, Deeds Point__ Rerolls all traitor dice, tracked separately from Call-on.';
                 msg += '\n`~help {command}`: __Specific Help__ gives more details about individual commands.';
-                msg += "\n`~luck`: __Luck, Fate point__: Rerolls all 6s in the previous roll if it wasn't open-ended or one traitor die if it was. Only useable once per roll";
+                msg += "\n`~luck`: __Luck, Fate point__ Rerolls all 6s in the previous roll if it wasn't open-ended or one traitor die if it was. Only useable once per roll";
                 msg += '\n`~pr {@user}`: See `~prev`';
                 msg += '\n`~prev {@user}`: __Previous Roll__: displays the previous roll.';
-                msg += '\n`~prob`: __Probability__: **Unimplemented** calculates the possible outcomes of a given roll.';
+                msg += '\n`~prob`: __Probability__: **Unimplemented** Calculates the possible outcomes of a given roll.';
+                msg += '\n`~rac`__Range and Cover Guide__ **In Testing**';
                 msg += '\n`~rdc X Y`: See `difficulty`';
                 msg += '\n`~test`: __How Can I Help?__ displays a list of things that need testing.';
                 msg += '\n`~vs {@user...}`: __Versus Test__ Pits two or more rolls against eachother.';
                 msg += '\n\n`~b#{!}`, `~g#{!}`, `~w#{!}` all include `{tags...}`. Rolls a pool of `#` [0-99] black, grey or white dice respectively.\n\ttype `~help roll` for more info on how to roll.';
 
-                msg += '\n\nPlease PM Saelvarath if you find any bugs or have other comments or suggestions!';
+                msg += '\n\nPlease PM Saelvarath#5785 if you find any bugs or have other comments or suggestions!';
             }
+
+            if ( msg !== "" )
+            {
+                message.author.send( msg );
+                msg = `**${message.author.username} has queried the cosmos.**`;
+            }
+           
         }
-      // Call On trait
+      // Call On trait & Deeds point Saving Grace
         else if ( firstCmd === 'co' || firstCmd === 'callon' || firstCmd === 'grace' )
         {
             let prevPool = client.rollMap.get( message.author.id );
@@ -333,6 +621,26 @@ client.on( 'message', ( message ) =>
                 }
 
                 prevPool.astroResult += astroTally;
+
+              // Check independant Open pool (1Dim Array)
+                prevPool.openEndedPool.slice().forEach( ( ioe, iI, iC ) =>
+                {
+                    let newRoll = [];
+
+                    if ( ioe < prevShade )
+                    {
+                        result = roll();
+                        newRoll.push( result );
+                        expoTally += result >= prevShade;
+                        while ( prevPool.isOpenEnded && result === 6 )
+                        {
+                            result = roll();
+                            newRoll.push( result );
+                            expoTally += result >= prevShade;
+                        }
+                        prevPool.openEndedPool.splice( iI, 1, ...newRoll );
+                    }
+                });
 
               // Check exponent Pool (1Dim Array)
                 prevPool.basePool.slice().forEach( ( die, dI, dC ) =>
@@ -472,18 +780,148 @@ client.on( 'message', ( message ) =>
 
             msg += `!\n[${DoF + bonus}]`;
         }
-      // Inheritors Easter Egg
-        else if ( firstCmd === 'inheritors' )
+      //+ Duel of Wits Guide
+        else if ( firstCmd === 'dow' )
         {
+            const DoWInterations =  
+            [ 
+                [ '-', '-', '-', 1, 'VS', 'VS', '-', '-', '-' ],    // Avoid
+                [ 1, 1, 1, 1, 'VS', 1, 'VS', 1, 1 ],    // Dismiss
+                [ '-', '-', 'VS', 'VS', 'VS', '-', 1, 1, 1 ],    // Feint
+                [ 'VS', "opponent's Will exponent", 'VS', "opponent's Will exponent", 'VS', "opponent's Will exponent", "opponent's Will exponent", "opponent's Will exponent", "opponent's Will exponent" ],    // Incite
+                [ 'VS', 'VS', 'VS', 'VS', 'VS', 'VS', 'VS', 1, 1 ],    // Obfuscate
+                [ 'VS', 1, 1, 1, 'VS', 1, 'VS', 1, 1 ],    // Point
+                [ '-', 'VS', '-', '-', 'VS', 'VS', '-', 0, 0 ],    // Rebuttal
+                [ '-', '-', '-', '-', '-', '-', '-', '-', '-' ],    // hesitate
+                [ '-', '-', '-', '-', '-', '-', '-', '-', '-' ] 
+            ];    // casting, praying etc.
+
+          //[name], [test], [std effect], [VS effect], {special}
+            const DoWAction = 
+            [ 
+                [ "Avoid the Topic",
+                    "Will",
+                    "-",
+                    "Your successes are subtracted from your opponent's successes, reducing their effectiveness.\n\tActions that have their successes reduced to zero fail and their effects are canceled.",
+                    "Avoid never suffers a double obstacle penalty for stat versus skill.", ],    // Avoid
+                [ "Dismiss Opponent", 
+                    "Coarse Persuasion, Command, Intimidation, Oratory, Religious Diatribe, Rhetoric, Stentorious Debate, Ugly Truth", 
+                    "Each success subtracts from your opponent's body of argument.",
+                    "Subtract the margin of success from your opponent's body of argument.\n\tAgainst the Dismiss action the winner subtracts ALL successes instead.",
+                    "Dismiss adds +2D to the character’s skill.\n\tIf the a Dismiss action fails to win the duel, it's user must change their next volly to a hesitate action." ],    // Dismiss
+                [ "Feint",
+                    "Extortion, Falsehood, Interrogation, Persuasion, Poisonous Platitudes, Religious Diatribe, Rhetoric, Soothing Platitudes, Seduction", 
+                    "Each success subtracts from your opponent's body of argument.",
+                    "The margin of success is subtracted from your opponents body of argument." ],    // Feint
+                [ "Incite Emotion",
+                    "Coarse Persuasion, Command, Extortion, Falsehood, Intimidation, Seduction, Ugly Truth",
+                    "If successful the victim must pass a Steel test or their next volley is changed to a hesitation action.\n\tIf Incite fails the margin of failure is added as advantage dice to the opponent's next test.",
+                    "If successful the victim must pass a Steel test or their next volley is changed to a hesitation action.\n\tIf Incite fails the margin of failure is added as advantage dice to the opponent's next test." ],    // Incite
+                [ "Obfuscate",
+                    "Falsehood, Oratory, Poisonous Platitudes, Rhetoric, Religious Diatribe, Soothing Platitudes, Stentorious Debate, Suasion, Ugly Truth",
+                    "-",
+                    "On a tie the victim loses their current action.\n\tIf Obfusticate exceeds it's Ob, then the victim also suffers +1 Ob to their next action.\n\tIf Obfuscate fails the opponent gains +1D to their next action." ],    // Obfuscate
+                [ "Make a Point",
+                    "Coarse Persuasion, Interrogation, Oratory, Persuasion, Poisonous Platitudes, Rhetoric, Stentorious Debate",
+                    "Subtract your successes from your opponent's body of argument.",
+                    "Subtract your margin of success from your opponent's body of argument." ],    // Point
+                [ "Rebuttal",
+                    "Extortion, Interrogation, Oratory, Persuasion, Poisonous Platitudes, Rhetoric, Stentorious Debate, Suasion",
+                    "-",
+                    "Successes on attack dice are subtracted from your opponent's Body of Argument.\n\tSuccesses from the defense roll are subtracted from the opponent's successes.",
+                    "Before you opponent rolls divide your dice between attack and defense. Each pool must have at least one die in it.\n\tAny penalties to the action are applied to both pools but bonuses to the action only apply to one."],
+                [ "Hesitate", // Stand and Drool, Run Screaming, Swoon, 
+                    "-",
+                    "The character is not actively participating in the Duel of Wits and is vulnerable.", 
+                    "The chacter can take no other action for now. Better luck with that Steel test next time!" ],
+                [ "Special", //spell casting, praying, singing, howling, etc. 
+                    "Varies", 
+                    "The character too busy to actively participate in the Duel of Wits and is vulnerable. I hope it's worth it!",
+                    "The character too busy to actively participate in the Duel of Wits and is vulnerable. I hope it's worth it!"]
+            ];
+
+          // no arguements
+            if ( args.length === 1 )
+            {
+                msg += "Recognized actions are:\n\t*avoid, cast, command, dismiss, drool, drop, fall, feint, hesitate, howl, incite, obfuscate, point, pray, prone, rebuttal, run, scream, screaming, sing, spell, spirit, stand, swoon*";
+            }
+          // 1 arguement: displays info on specific action.
+            else if ( args.length === 2 )
+            {
+                let act = actionConverter( 'd', args[1] );
+
+                if (  typeof DoWAction[act] != 'undefined' )
+                {
+                    msg += `**${DoWAction[act][0]}**\n*Tests:*\n\t${DoWAction[act][1]}`;
+
+                    if (DoWAction[act].length === 5 )
+                    {
+                        msg += `\n*Special:*\n\t${DoWAction[act][4]}`;
+                    }
+
+                    msg += `\n*Standard Test Effect:*\n\t${DoWAction[act][2]}`;
+                    msg += `\n*Versus Test Effect:*\n\t${DoWAction[act][3]}`;
+
+                    message.author.send( msg );
+
+                    msg =  `**${message.author.username} has queried the cosmos.**`;
+                }
+                else 
+                    {    msg += "I don't know that action..."    }
+            }
+          // 2 arguements displays info on the interation of the two specified actions.
+            else if ( args.length === 3 )
+            {
+                let a1 = actionConverter( 'd', args[1] );
+                let a2 = actionConverter( 'd', args[2] );
+
+                if ( a1 !== -1 && a2 !== -1)
+                {
+                    msg += `Contestant 1's ${DoWAction[a1][0]} action `;
+
+                    if ( DoWInterations[a1][a2] === 'VS' )
+                    {    msg += `makes a VS test against their oppenent's roll\n${DoWAction[a1][3]}`;    }
+                    else if ( DoWInterations[a1][a2] === '-' )
+                    {    msg += `is vulnerable against their opponent's action and makes no roll`;    }
+                    else
+                    {    msg += `rolls a standard test against and Ob of ${DoWInterations[a1][a2]}\n\t${DoWAction[a1][2]}`;    }
+
+                    msg += `\n\nContestant 2's ${DoWAction[a2][0]} action `;
+
+                    if ( DoWInterations[a2][a1] === 'VS' )
+                    {    msg += `makes a VS test against their oppenent's roll\n${DoWAction[a2][3]}`;    }
+                    else if ( DoWInterations[a2][a1] === '-' )
+                    {    msg += `is vulnerable against their opponent's action and makes no roll`;    }
+                    else
+                    {    msg += `rolls a standard test against and Ob of ${DoWInterations[a2][a1]}\n\t${DoWAction[a2][2]}`;    }
+                }
+                else
+                {    msg += "Use `~dow` to see a list of recognized actions.";    }
+            }
+            else
+            {    msg = "Something isn't right... have you tried the `~help dow` command?";    }
+        }
+      //+ Fight! Guide
+        else if ( firstCmd === 'fight' )
+        {
+
+        }
+      // Inheritors Easter Egg
+        else if ( firstCmd === 'inheritors' && message.author.id === config.boss )
+        {
+            message.delete(0);
             msg += '\nThe king on the throne, alone one day,\nTook the words in his mouth and threw them away,\nFirst came the servants, the first of the seen,\nWho built him a house, and kept his hearth clean\nNext came the tall men of stone and cold fire,\nTo seek out all sinners and add to the pyre.\nThen came the beloved, the storied and told,\nThe first to lay claim to the cosmos of old.\nLast came the white ones of bones, teeth and eyes,\nWho swallow all truths and spit out only lies.';
         }
       // Knights Easter Egg
-        else if ( firstCmd === 'knights')
+        else if ( firstCmd === 'knights' && message.author.id === config.boss )
         {
+            message.delete(0);
             msg += 'What makes a knight?\nA shining blade or bloody battered steel?\nLet us name the Orders Four and the truth within reveal.\n\nTHE GEAS KNIGHT unknown by name, the seeker proud and true,\nHis endless quest hath rent the stars yet known is he by few,\n\nTHE PEREGRINE, whose bell always rings the crack of breaking day,\nIt’s nameless peal will drive the ceaseless evil from the ways,\n\nTHE BLOODY KNIGHT, belligerent, her edge tastes skulls and lives,\nThe viscera of common men and royalty besides,\n\nTHE MENDICANT, the beggar knight, roughly clad and shod,\nHe lives as though he were a beast, but fights he as a God.';
         }
       // Luck; Fate point, retroactively make a roll Open-Ended or reroll one die
-        //+ if there is a mention; use that roll?
+        //+ if roll is not open ended but contains asto or independant open dice force choice 
+        //+ figure out how astro dice work in this scenario
+        //+ figure out how to handle pools with both open and non-open ended dice 
         else if ( firstCmd === 'luck' || firstCmd === 'fate' )
         {
             let prevPool = client.rollMap.get( message.author.id );
@@ -613,9 +1051,14 @@ client.on( 'message', ( message ) =>
                     prevPool.isOpenEnded = true;
 
                     msg += `reroll results: ${prevPool.printPool()}`;
+
+                    if ( prevPool.astroDice !== 0 || prevPool.openEndedDice !== 0 )
+                    {
+                        //+ make this work.
+                        msg += "\n\nI don't know how to deal with a pool is already partially Open-Ended so those dice are ignored.";
+                    }
                 }
 
-                //+ if there is a mention; log roll under user.id
                 client.rollMap.set( message.author.id, prevPool );
             }
           // Fate point already spent
@@ -625,13 +1068,15 @@ client.on( 'message', ( message ) =>
             }
         }
       //+ Maybe Easter Egg
-        else if ( firstCmd === 'maybe' )
+        else if ( firstCmd === 'maybe' && message.author.id === config.boss )
         {
-
+            message.delete(0);
         }
       // Meti's Sword Manual
-        else if ( firstCmd === 'meti' )
+        else if ( firstCmd === 'meti' && message.author.id === config.boss )
         {
+            message.delete(0);
+            
             let verse = typeof args[1] === 'undefined' ? 1 + Math.floor( Math.random() * 30 ) : Number( args[1] );
 
             if ( verse <= 6 )
@@ -639,7 +1084,7 @@ client.on( 'message', ( message ) =>
             else if ( verse <= 8 )
                 {   msg += "**Mastering the Sword**\n"; }
             else if ( verse <= 26 )
-                {   msg += `**The 18 Precepts**\n__${ verse - 9 })__: `;   }
+                {   msg += `**The 18 Precepts**\n__${verse - 9})__: `;   }
             else
                 {   msg += "**Closing**\n";   }
 
@@ -711,6 +1156,37 @@ client.on( 'message', ( message ) =>
                     msg += "Reach heaven by violence."; break;
             }
         }
+      // Practice
+        else if (  firstCmd === 'practice' )
+        {
+            const catagory = {};
+            const times = { 
+                        academic: [ 6, 'm', 2, 4, 8 ],
+                        artistic: [ 1, 'y', 4, 8, 12 ],
+                        artist: [ 6, 'm', 3, 6, 12 ],
+                        craftsman: [ 1, 'y', 3, 8, 12 ],
+                        forester: [ 6, 'm', 3, 6, 12 ],
+                        martial: [ 1, 'm', 2, 4, 8 ],
+                        medicinal: [ 1, 'y', 4, 8, 12 ],
+                        military: [ 6, 'm', 2, 4, 8 ],
+                        musical: [ 1, 'm', 2, 4, 8 ],
+                        peasant: [ 3, 'm', 1, 4, 12 ],
+                        physical: [ 1, 'm', 2, 4, 8 ],
+                        sot: [ 6, 'm', 3, 6, 12 ],
+                        seafaring: [ 3, 'm', 2, 4, 8 ],
+                        social: [ 1, 'm', 2, 4, 8 ],
+                        sorcerous: [ 1, 'y', 5, 10, 15 ],
+                        special: [ 3, 'm', 3, 6, 12 ],
+                        misc: [ 3, 'm', 3, 6, 12 ],
+                        will: [ 1, 'y', 4, 8, 16 ],
+                        perception: [ 6, 'm', 3, 6, 12 ],
+                        agility: [ 3, 'm', 2, 4, 8 ],
+                        speed: [ 3, 'm', 3, 6, 9 ],
+                        power: [ 1, 'm', 2, 4, 8 ],
+                        forte: [ 2, 'm', 4, 8, 16 ],
+                        faith: [ 1, 'y', 5, 10, 20 ],
+                        steel: [ 2, 'm', 1, 3, 9 ] };
+        }
       // Show previous rolls
         else if ( firstCmd === 'pr' || firstCmd === 'prev' )
         {
@@ -731,9 +1207,10 @@ client.on( 'message', ( message ) =>
             msg += 'Probability math is hard. it will be a while before this gets completed.';
         }
       // Psalms Easter Egg
-        else if ( firstCmd === 'psalms' )
+        else if ( firstCmd === 'psalms' && message.author.id === config.boss )
         {
-
+            message.delete(0);
+            
             let verse = typeof args[1] === 'undefined' ? Math.floor( Math.random() * 19 ) : Number( args[1] );
 
             if ( verse <= 7 )
@@ -798,7 +1275,7 @@ client.on( 'message', ( message ) =>
                     “Dearest Un-Hansa,” spoke YISUN, after a moment, as they strolled along an expanse of fractal glass and cold fire, “Art thou not flesh of my self love? Springst thou not from my recursive womb?”
                     “Sprung I from your brow, for it is my lot in life to beat my hands against it in return for ejecting me,” said Hansa, in jest, but in truth he listened.
                     “Knowst thou the meaning of my name Y-S-U-N is the true name of sovereignty?” spoke YISUN plainly.
-                    ” I do,” spoke Hansa, for it was true.
+                    “I do,” spoke Hansa, for it was true.
                     YISUN then assumed a speaking form that was bright and very cold, from her breath she inhaled the void, and when she exhaled, beautiful water came forth from her pliant lips in great rushing gasps, and there was a sound like a clear bell that meant emptiness. Hansa was very moved by this display and watched as the shining water curved and bent upon itself and crystallized, and suddenly before the pair was a great, beautiful house, translucent and all filled with light of many colors.
                     “Observe my work,” said YISUN, pleased.
                     “It is an astounding work,” said Hansa, clearly impressed. They strode inside the house at YISUN’s bidding. The walls were clear and smooth as crystal, and warm to the touch. It had a wide hall, and a full hearth, and was full of light and air, and the openness of the place with the starkness of the void was incredibly pleasing. Hansa would have given half his lordship for such a house, in truth, for his own was a dark and cramped tomb of iron and dust.
@@ -825,9 +1302,173 @@ client.on( 'message', ( message ) =>
                     msg += ' __The lie of the small light__\n\nHansa was of sound mind and proud soul and only once asked YISUN a conceited question, when he was very old and his bones were set about with dust and bent with age. It was about his own death.\n\n“Lord,” said Hansa, allowing a doubt to blossom, “What is ending?”\nIt was said later he regretted this question but none could confirm the suspicion.\n“Ending is a small light in a vast cavern growing dim,” said YISUN, plainly, as was the manner.\n\n“When the light goes out, what will happen to the cavern?”\n“It and the universe will cease to exist, for how can we see anything without any light, no matter how small?” said YISUN.\nHansa was somewhat dismayed, but sensed a lesson, as was the manner.\n\n“Darkness is the natural state of caverns,” said he, vexingly, “if I were a cavern, I would be glad to be rid of the pest of light and exist obstinately anyway!”\n“Hansa is observant,” said YISUN.';    break;
             }        
         }
-      //+ Spasms Easter Egg
-        else if ( firstCmd === 'spasms' ) 
+      //+ Range and Cover Guide
+        else if ( firstCmd === 'rac' )
         {
+          //Name, Test, test type, move type, Effect
+            const RaCActions = 
+            [
+                ['Charge', 
+                    'Steel', 'steel', 
+                    'advance',
+                    'If successful your opponent gets one free shot, then you advance one range category.\n\tIf tied, everyone on both teams gets to shoot.\n\tIf failed, your opponent gets two free shots and you hesitate in the next volley.'],
+                ['Close Distance', 
+                    'Speed ', 'stat',
+                    'advance',
+                    'If successful, advance one range category.'],
+                ['Fall Back', 
+                    'Tactics + FoRKs', 'skill',
+                    'withdraw', 
+                    "If successful, withdraw one range category.\n\tThen, for two successes, you can re-range all combatant's weapons"],
+                ['Flank', 
+                    'Tactics + FoRKs', 'skill',
+                    'advance',
+                    'If successful, advance one range category.'],
+                ['Hold Position', 
+                    'Perception Vs Stat, Observation Vs Skill', 'special',
+                    'hold',
+                    "Special: Advantage dice from a position are carried over into your next maneuver.\n\tFirst, the movement portion of your opponent's maneuver automatically occurs.\n\tThen, take a free shot."], //doesn't get advantage from Stride
+                ['Maintain Distance', 
+                    'Speed', 'stat',
+                    'hold',
+                    'If successful, previous range catagory is unchanged.'],
+                ['Retreat', 
+                    'Steel +1D', 'steel',
+                    'withdraw', 
+                    'If successful, your opponent gets a free shot, then you withdraw one range category.\n\tIf tied, your opponent gets two free shots.\n\tIf failed, your opponents gets two free shots plus you hesitate in the next volley.'],
+                ['Sneak In', 
+                    'Stealthy + FoRKs', 'skill',
+                    'advance',
+                    'If successful, advance one range category.'],
+                ['Sneak Out', 
+                    'Stealthy + FoRKs', 'skill',
+                    'withdraw', 
+                    'If successful, withdraw one range category.'],
+                ['Withdraw', 
+                    'Speed +2D', 'stat',
+                    'withdraw', 
+                    "Special: All actions taken cost two successes.\n\tIf successful, withdraw one range category and you can take an action to remain at your current range then re-range all combatant's weapons."],
+                ['Stand and Drool',
+                    '-', '-',
+                    'hold',
+                    "The Ob for your opponent's Positioning test is 1 and they may take an action to capture you if within optimal range"],
+                ['Run Screaming',
+                    'Speed or Steel', 'Stat',
+                    'withdraw', 
+                    'You drop what you are holding and flee while screaming.\n\tIf successful, you withdraw one range catagory but can make no aggressive actions.\n\tYour opponent may take an action to capture you if within optimal range'],
+                ['Fall Prone and Beg for Mercy',
+                    '-', '-',
+                    'hold',
+                    "Your opponent's next positioning test is at Ob 1, but once you recover you have a 2D position"],
+                ['Swoon',
+                    '-', '-',
+                    'hold',
+                    "Special: Immediately make a free Stealthy or Inconspicuous test against your opponent's Observation.\n\tIf successful they lose track of you and you awake later cold and alone.\n\tIf failed their next positioning test is at Ob 1"]
+            ];
+
+            // no arguements
+            if ( args.length === 1 )
+            {
+                msg += "Recognized Maneuvers are:\n\t*Charge, Close, Fall, FallBack, Fall_Back, Flank, Hold, Maintain, Retreat, SneakIn, Sneak_In, SneakOut, Sneak_Out, Withdraw*";
+                //
+            }
+           // 1 arguement: displays info on specific action.
+            else if ( args.length === 2 )
+            {
+                let act = actionConverter( 'r', args[1] );
+ 
+                if ( typeof RaCActions[act] != 'undefined' )
+                {
+                    msg += `**${RaCActions[act][0]}**`;
+                    msg += RaCActions[act][1] !== '-' ? `\n*Tests:*\t${RaCActions[act][1]} + weapon range + position${act != 4 ? ' + stride' : ''}.` : '';
+
+                    msg += `\n*Effect:*\n\t${RaCActions[act][4]}`;
+
+                    message.author.send( msg );
+
+                    msg =  `**${message.author.username} has queried the cosmos.**`;
+                }
+                else 
+                    {    msg += "I don't know that maneuver..."    }
+            }
+        // 2 arguements displays info on the interation of the two specified actions.
+            else if ( args.length === 3 )
+            {
+                let a1 = actionConverter( 'r', args[1] );
+                let a2 = actionConverter( 'r', args[2] );
+
+                if ( a1 !== -1 && a2 !== -1)
+                {
+                    msg += `**${RaCActions[a1][0]}**\nRolls `;
+
+                    if (  RaCActions[a1][1] !== '-' )
+                    {
+                        if ( RaCActions[a1][2] === 'special' )
+                        {
+                            if ( RaCActions[a2][2] !== 'skill')
+                                {    msg += 'Perception';    }
+                            else
+                                {    msg += 'Observation';    }
+                        }
+                        else
+                            {    msg += RaCActions[a1][1];    }
+
+                        msg += ` plus modifiers gained from weapon range${a1 != 4 ? `, position and stride` : ` and position`}${ RaCActions[a2][2] === 'skill' && RaCActions[a1][2] === 'stat' ? ' at a __double Ob penalty__' : ''}.`;
+                    }
+                    msg += `\n\t${RaCActions[a1][4]}`;
+
+
+                    msg += `\n\n**${RaCActions[a2][0]}**\nRolls `;
+
+                    if (  RaCActions[a2][1] !== '-' )
+                    {
+                        if ( RaCActions[a2][2] === 'special' )
+                        {
+                            if ( RaCActions[a1][2] !== 'skill')
+                                {    msg += 'Perception';    }
+                            else
+                                {    msg += 'Observation';    }
+                        }
+                        else
+                            {    msg += RaCActions[a2][1];    }
+
+                        msg += ` plus modifiers gained from weapon range${a2 != 4 ? `, position and stride` : ` and position`}${ RaCActions[a1][2] === 'skill' && RaCActions[a2][2] === 'stat' ? ' at a __double Ob penalty__' : ''}.`;
+                    }
+                    msg += `\n\t${RaCActions[a2][4]}`;
+
+
+                  //+ TIES
+                    if ( RaCActions[a1][3] === 'advance' && RaCActions[a2][3] === 'advance' )
+                    {
+                        /*
+                        Close VS Flank,                     Close Wins.
+                        Sneak In VS Close | Charge,         Sneak In Wins. 
+                        Flank Vs Sneak In | Charge,         Flank wins. 
+                        Charge Vs Close                     Charge wins.
+                        */
+                    }
+                    else if ( RaCActions[a1][3] === 'withdraw' && RaCActions[a2][3] === 'withdraw' )
+                    {
+                        /*
+                        Withdraw Vs Fall Back               Withdraw wins.
+                        Sneak Out Vs Withdraw | Retreat,    Sneak Out Wins.
+                        Fall Back Vs Sneak Out | Retreat,   Fall Back Wins.
+                        Retreat Vs Withdraw,                Retreat Wins.
+                        */
+                    }
+                }
+                else
+                {    msg += "Use `~rac` to see a list of recognized actions.";    }
+            }
+            else
+            {    msg = "Something isn't right... have you tried the `~help rac` command?";    }
+            
+        }
+      //+ Spasms Easter Egg
+        else if ( firstCmd === 'spasms' && message.author.id === config.boss ) 
+        {
+            message.delete(0);
+            
             let verse = typeof args[1] === 'undefined' ? 0 /*//- Math.floor( Math.random() * 30 )*/ : Number( args[1] );
 
             switch ( verse )
@@ -843,19 +1484,55 @@ client.on( 'message', ( message ) =>
       // Areas of improvement
         else if ( firstCmd === 'test' )
         {
-            msg += '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving of Royalty.\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
+            msg += 'Arenjii is a work in progress and the rules for Burning Wheel are intricate. Many interations are not explicitly clarified and I cannot claim to be an expert in the system.\nKeep an eye out to make sure my interpretation of the rules meets your expectations\nThere are some areas where I recommend extra scrutiny:';
+              msg += '\n\t-__Rerolls__: Make sure Arenjii honours your well earned rerolls, particularly if your roll involves astrology or open-ended dice when the pool itself is not open-ended.';
+              msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved.';
+              msg += '\n\t-__Mixed Dice__: open-ended dice in pools that are not open-ended may be excluded from some features or behave oddly';
+
+            //-
+            /*msg += '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving!\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
             msg += '\n\nKnown weakenesses of the White God Arenjii are:';
               msg += '\n\t-__Obstacle Multiplication__: Several new verses to the prayer of rolling have been uncovered, invoke them with `ox#`, `ds#` and `bl`.';
-              msg += '\n\t-__Dice Math__: In additon the `ad#`, `fk#` and `di` verses have been unlocked, with so many new commands it may be possible to overwhelm him.';
               msg += '\n\t-__Rerolls__: The `~fate`, `~callon` and `~grace` mantras are now functional. Make sure Un-Arenjii honours your well earned rerolls.';
               msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved. find a friend, better two, and watch Un-Arenjii squirm!';
-            msg += '\nReach heaven through violence.';
+              msg += '\n\t-__Mixed Dice__: open-ended dice in pools that are not open-ended may be excluded from some features or behave oddly';
+            msg += '\nReach heaven through violence.';*/
         }
       // Versus Test
+      //+ Shade Math
         else if ( firstCmd === 'vs' )
         {
+            /* 
+            B (B + G + 2) / 2
+            G (B + W + 3) / 2
+            G (G + W + 3) / 2
+
+            W + W = W. 
+            W + G = G. 
+            W + B = G.
+
+            G + G = G.
+            G + B = B.
+
+            B + W + G 	= B.
+            W + G + G 	= G.
+            W + W + G 	= G.
+            **/
             let contenders = [];
             let firstDoS;
+
+            /*
+                In a versus test,
+                Everyone has to roll before anyone knows their base Ob.
+                Once everyone has rolled, they each announce what degree of success they would have gotten in a graduated test (as if their base Ob was 0, essentially), but without rounding
+                Then you listen for the maximum degree of success among those you're testing against and take the maximum of those and use it as your base Ob.
+                Now calculate whether you succeeded or failed as normal (any 2x/4x/8x penalty and any +Ob penalty modifying that possibly-fractional base),
+                    if you succeeded, how many extra successes you got (at this point, round down).
+                Anyone who succeeded is eligible to win the versus test.
+                Whoever had the most extra successes actually does win, and their margin of success (actual extra successes) is the difference.
+                If you fail you count as having 0 extra successes. If there is a tie, the versus test is tied.
+                Note that if you fail, but your only opponent succeeds with 0 extra successes, (TODO: this should be verified) the versus test is still a tie.
+                */
 
           // No mentions
             if ( message.mentions.users.keyArray().length === 0 )
@@ -917,8 +1594,9 @@ client.on( 'message', ( message ) =>
             if ( contenders !== null && contenders.length > 0 )
             {
               //order by degree of success
-                contenders.sort( function( a, b ) { return ( ( b.successes + b.astroResult - b.ObAddition ) / b.ObMultiplier - a.successes + a.astroResult - a.ObAddition ) / a.ObMultiplier; } );
-                firstDoS = ( contenders[0].successes + contenders[0].astroResult - contenders[0].ObAddition ) / contenders[0].ObMultiplier;
+                contenders.sort( function( a, b ) { return ( ( b.successes + b.astroResult - b.ObAddition ) / b.ObMultiplier - ( a.successes + a.astroResult - a.ObAddition ) / a.ObMultiplier ); } );
+                firstDoS = ( contenders[0].successes + contenders[0].astroResult ) / contenders[0].ObMultiplier;
+                secondDoS = ( contenders[1].successes + contenders[1].astroResult ) / contenders[1].ObMultiplier;
 
               // Output
                 if ( contenders.length >= 2 )
@@ -927,13 +1605,14 @@ client.on( 'message', ( message ) =>
 
                     contenders.forEach( ( contestant, cI, cC ) =>
                     {
-                        contestant.obstacle = firstDoS;
+                        //+ highest DoS should not face itself
+                        contestant.obstacle = cI === 0 ? secondDoS : firstDoS;
 
                         let totalSuc = contestant.successes + contestant.astroResult;
                         let totalOb = contestant.obstacle * contestant.ObMultiplier + contestant.ObAddition;
                         let totalPool = contestant.exponent + contestant.nonArtha + contestant.astroDice + contestant.helperDice;
 
-                        msg += `\n${contestant.owner} rolled ${totalSuc} against and Ob of ${totalOb}`
+                        msg += `\n${contestant.reps === 0 ? contestant.owner : `**${contestant.owner.username} ${contestant.reps}**`} rolled ${totalSuc} against an Ob of ${totalOb}`
 
                         if ( contestant.ObMultiplier > 1 || contestant.ObAddition > 0 )
                         {
@@ -966,22 +1645,13 @@ client.on( 'message', ( message ) =>
                 else 
                     {   msg += '/nYou need two to tango.';   }
             }
-            /*
-            In a versus test,
-            Everyone has to roll before anyone knows their base Ob.
-            Once everyone has rolled, they each announce what degree of success they would have gotten in a graduated test (as if their base Ob was 0, essentially), but without rounding
-            Then you listen for the maximum degree of success among those you're testing against and take the maximum of those and use it as your base Ob.
-            Now calculate whether you succeeded or failed as normal (any 2x/4x/8x penalty and any +Ob penalty modifying that possibly-fractional base),
-                if you succeeded, how many extra successes you got (at this point, round down).
-            Anyone who succeeded is eligible to win the versus test.
-            Whoever had the most extra successes actually does win, and their margin of success (actual extra successes) is the difference.
-            If you fail you count as having 0 extra successes. If there is a tie, the versus test is tied.
-            Note that if you fail, but your only opponent succeeds with 0 extra successes, (TODO: this should be verified) the versus test is still a tie.
-            */
+           
         }
       // Yisun easter egg
-        else if ( firstCmd === 'yisun' )
+        else if ( firstCmd === 'yisun' && message.author.id === config.boss )
         {
+            message.delete(0);
+            
             switch ( Number( args[1] ) )
             {
                 case 1:
@@ -1000,220 +1670,14 @@ client.on( 'message', ( message ) =>
                     msg += 'The Wheel and Void are everlasting\nThe reason the Wheel and Void can last forever\nIs that they do not exist for themselves\nThus they can last forever.'; break;
                 case 8:
                     msg += 'Be fire: A burning will that consumes everything in its path to survive. Dance a dance of destruction and rebirth'; break;
+                case 0:
                 case 9:
                     msg += 'YS ATUN VRAMA PRESH';   break;
             }
         }
-      // Standard Test
-        else if ( rollPattern.test( firstCmd ) )
-        {
-          // setup
-            let firstExp = rollPattern.exec( firstCmd );
-
-            var currPool = new diePool();
-
-            currPool.owner = message.author;
-            currPool.exponent = Number( firstExp[2] );
-            currPool.totalRolled = currPool.exponent;
-            currPool.isOpenEnded = firstExp[3] === '!';
-
-          // read and interpret each token
-            args.forEach( token =>
-            {
-                let flag = testPattern.exec( token.toLowerCase() );
-
-                if ( flag )
-                {
-                    let amount = Number( flag[2] );
-
-                    switch ( flag[1] )
-                    {
-                        case 'ad':  // Advantage dice
-                            //+ restrict to +2D
-                        case 'fk':  // FoRK dice
-                            currPool.nonArtha += amount;
-                            break;
-                        case 'as':  // Astrology
-                            if ( amount !== 0 && currPool.astroDice === 0)
-                            {
-                                currPool.astroDice++;
-
-                                if ( amount >= 5 )
-                                {
-                                    currPool.astroDice++;
-                                }
-                            }
-                            break;
-                        case 'bl':  // Beginner's Luck
-                            if ( !currPool.beginnersLuck )
-                            {
-                                currPool.ObMultiplier *= 2;
-                                currPool.beginnersLuck = true;
-                            }
-                            break;
-                        case 'bn':  // Boon; Persona Point - +1D-3D to a roll
-                            if ( currPool.booned < 3 )
-                            {
-                                if ( amount + currPool.booned >= 3 )
-                                {
-                                    currPool.arthaDice = 3;
-                                    currPool.booned = 3;
-                                }
-                                else
-                                {
-                                    currPool.arthaDice += amount;
-                                    currPool.booned += amount;
-                                }
-                            }
-                            break;
-                        case 'di':  // Divine Inspiration; Deeds Point - doubles base Exponen
-                            if ( !currPool.inspired )
-                            {
-                                currPool.arthaDice += currPool.exponent;
-                                currPool.inspired = true;
-                            }
-                            break;
-                        case 'ds':  // Disadvantage
-                            currPool.ObAddition += amount;
-                            break;
-                        case 'he':  // Helper dice
-                            if ( amount > 6 )
-                            {
-                                currPool.helperPool.push( [0, 0] );
-                                currPool.helperDice += 2;
-                            }
-                            else
-                            {
-                                currPool.helperPool.push( [0] );
-                                currPool.helperDice++;
-                            }
-                            currPool.helperExponent.push( amount );
-                            break;
-                        case 'ns':  // No save
-                            saveRoll = false;
-                            break;
-                        case 'ob':  // Base obstacle
-                            currPool.obstacle = amount;
-                            break;
-                        case 'ox':  // Base Obstacle multiplier
-                            currPool.ObMultiplier *= amount > 0 ? amount : 1;
-                            break;
-                        case 'vs':  // this is a VS test?
-                            isVS = true;
-                            break;
-                    }
-                }
-            });
-
-          // Find total dice rolled
-            currPool.totalRolled = currPool.exponent + currPool.arthaDice + currPool.nonArtha + currPool.astroDice + currPool.helperDice;
-
-          // determine shade
-            switch ( firstExp[1].toLowerCase() )
-            {
-                case 'b':
-                    currPool.shade = 4;
-                    break;
-                case 'g':
-                    currPool.shade = 3;
-                    break;
-                case 'w':
-                    currPool.shade = 2;
-                    break;
-            }
-
-          // roll astrology dice
-            for ( a = 0; a < currPool.astroDice; a++ )
-            {
-                let astRoll = roll();
-                currPool.astroResult += astRoll >= currPool.shade;
-                currPool.astroPool.push( astRoll );
-
-                while( astRoll === 6 )
-                {
-                astRoll = roll();
-                currPool.astroResult += astRoll >= currPool.shade;
-                currPool.astroPool.push( astRoll );
-                }
-
-                if ( astRoll === 1 )
-                {
-                astRoll = roll();
-                currPool.astroResult -= astRoll < currPool.shade;
-                currPool.astroPool.push( astRoll );
-                }
-            }
-
-          // roll helper dice
-            for ( h = 0; h < currPool.helperPool.length; h++ )
-            {
-                let helpRoll = [];
-
-                for ( h2 = 0; h2 < currPool.helperPool[h].length; h2++ )
-                {
-                    let r = roll();
-                    currPool.successes += r >= currPool.shade;
-                    helpRoll.push( r );
-
-                    while( currPool.isOpenEnded && r === 6 )
-                    {
-                        r = roll();
-                        currPool.successes += r >= currPool.shade;
-                        helpRoll.push( r );
-                    }
-                }
-
-                currPool.helperPool[h] = helpRoll;
-            }
-
-          // Roll Exponent dice
-            for ( d = 0; d < Number( currPool.exponent ) + Number( currPool.arthaDice ); d++ )
-            {
-                let r = roll();
-
-                if ( r >= currPool.shade ) 
-                    {   currPool.successes++;   }
-                if ( currPool.isOpenEnded && r === 6 ) 
-                    {   d--;   }
-
-                currPool.basePool.push( r );
-            }
-
-          // VS Test
-            if ( isVS )
-            {
-                let vsRolls = client.rollMap.get( message.channel.id );
-
-                if ( vsRolls === null )
-                {
-                    vsRolls = [];
-                }
-
-                vsRolls.push( currPool );
-
-                client.rollMap.set( message.channel.id, vsRolls );
-
-                msg += `${message.author.username} added a roll to the VS pile.`;
-            }
-
-          // Output
-            if ( !isVS )
-            {
-                msg += currPool.printPool();
-            }
-
-          // Save Roll
-            if ( saveRoll )
-            {
-                //- client.rollMap.set( message.channel.id, currPool ); //- is there any reason to save this?
-                client.rollMap.set( message.author.id, currPool );
-            }
-        }
       // Invalid command
         else
-        {
-            msg += "That's not a valid command.";
-        }
+        {    msg += "That's not a valid command.";    }
 
       // Output
         if ( msg !== '' )
@@ -1305,6 +1769,83 @@ function diceSugar( pool, shade, open )
     }
 
     return msg;
+}
+
+//DoW, Fight!, RaC keyword conversion
+function actionConverter ( type, action )
+{
+    let act = -1;
+
+    if ( type === 'f')
+    {
+        
+    }
+    else if ( type === 'd' )
+    {
+        switch ( action )
+        {
+            case "avoid": act = 0; break;
+            case "dismiss": act = 1; break;
+            case "feint": act = 2; break;
+            case "incite": act = 3; break;
+            case "obfuscate": act = 4; break;
+            case "point": act = 5; break;
+            case "rebuttal": act = 6; break;
+            case "fall":
+            case "prone":
+            case "beg":
+            case "mercy":
+            case "run":
+            case "scream":
+            case "screaming":
+            case "stand":
+            case "drool":
+            case "swoon":
+            case "hesitate": act = 7; break;
+            case "command":
+            case "spirit":
+            case "cast":
+            case "drop":
+            case "spell":
+            case "pray":
+            case "sing":
+            case "howl": act = 8; break;
+        }
+    }
+    else if ( type === 'r' )
+    {
+        switch ( action )
+        {
+            case "charge": act = 0; break;
+            case "close": act = 1; break;
+            case "fall":
+            case "fallback":
+            case "fall_back": act = 2; break;
+            case "flank": act = 3; break;
+            case "hold": act = 4; break;
+            case "maintain": act = 5; break;
+            case "retreat": act = 6; break;
+            case "sneakin":
+            case "sneak_in":
+            case "fall": act = 7; break;
+            case "sneakout":
+            case "sneak_out": act = 8; break;
+            case "command":
+            case "withdraw": act = 9; break;
+            case "prone":
+            case "beg":
+            case "mercy":  act = 10; break;
+            case "run":
+            case "scream":
+            case "screaming": act = 11; break;
+            case "stand":
+            case "drool": act = 12; break;
+            case "swoon": act = 13; break;
+        }
+    }
+
+
+    return act;
 }
 
 client.login( config.token );
