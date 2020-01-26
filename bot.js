@@ -1,6 +1,8 @@
 const Discord = require( 'discord.js' );
 const config = require( './config.json' );
 
+const fs = require( 'fs' );
+
 const Enmap = require('enmap');
 //+ const EnmapMongo = require('enmap-mongo');
 
@@ -66,13 +68,12 @@ class diePool
 
         msg += this.ObMultiplier > 1 && this.obstacle > 0 ? ` [${this.obstacle}*${this.ObMultiplier}+${this.ObAddition}].` : '.';
 
-      // tally & output astrology results
-        if ( this.astroDice > 0 )
+      // print base dice
+        if ( this.basePool.length )
         {
-            msg += '\nThe Stars were ';
-            msg += this.astroResult > 0 ? 'right' : 'wrong';
-            msg += ` and their fate gives them ${this.astroResult} success this roll\nFortune Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`;
-            //-msg += '\n' + this.astroPool.toString();
+            msg += `\nExponent dice: ${diceSugar( this.basePool, this.shade, this.isOpenEnded )}`;
+            msg += this.arthaDice > 0 ? ` ${this.arthaDice} of which were gained by spending Artha` : '';
+            //-msg += '\nActual roll: {' + this.basePool.toString() + '}';
         }
 
       //+ Independently Open-Ended dice
@@ -93,13 +94,14 @@ class diePool
 
             msg += '.';
         }
-      // print base dice
-        if ( this.basePool.length )
+
+      // tally & output astrology results
+        if ( this.astroDice > 0 )
         {
-            msg += `\nBase dice: ${diceSugar( this.basePool, this.shade, this.isOpenEnded )}`;
-            msg += this.arthaDice > 0 ? ` ${this.arthaDice} of which were gained by spending Artha` : '';
-            //-msg += '\nActual roll: {' + this.basePool.toString() + '}';
+            msg += `\nFortune Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`
+            msg += `\nThe Stars were ${this.astroResult > 0 ? 'right' : 'wrong'} and their fate gives them ${this.astroResult} success this roll`;
         }
+
       // determine Main test difficulty
         let totesSuccessess = this.successes + this.astroResult;
         let totesObstacle = this.obstacle * this.ObMultiplier + this.ObAddition;
@@ -112,7 +114,7 @@ class diePool
 
             if ( this.beginnersLuck )
             {
-                msg += bl === 'Routine' ? 'test towards learning a new Skill!' : `${bl} test towards advancing their Root Stat!`;
+                msg += bl === 'Routine' ? 'test towards learning a **new Skill**!' : `${bl} test towards advancing their **Root Stat**!`;
             }
             else
             {
@@ -143,15 +145,42 @@ client.rollMap = new Enmap(); // non-persistant
 const routineTest = [0, 1, 1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25];
 
 const prefix = config.prefix;
+const prefix2 = config.prefix2; 
 
-const rollPattern = RegExp( '([b|g|w])([0-9]{1,2})(!?)', 'i' );
-const testPattern = RegExp( '([a-z\+]{1,2})([0-9]{0,2})', 'i' );
+const rollPattern = RegExp( '([bgw])([0-9]{1,2})(!?)', 'i' );
+const testPattern = RegExp( '([a-z]{1,2})([0-9]{0,2})', 'i' );
 
 client.on ( "ready", () => { console.log( "I am ready!" ); });
 
+//autoLog
+client.on( "error", () => {
+  // Log
+    fs.appendFile( 'logFile.txt', client.rollMap.get( 'logfile' ),  function (err) {
+        if (err) throw err;
+        console.log('Err!');
+        client.rollMap.set( 'logfile', '');
+    });
+});
+client.on( "disconnect", () => {
+    // Log
+      fs.appendFile( 'logFile.txt', client.rollMap.get( 'logfile' ),  function (err) {
+          if (err) throw err;
+          console.log('Dis!');
+          client.rollMap.set( 'logfile', '');
+    });
+});
+client.on( "debug", () => {
+    // Log
+      fs.appendFile( 'logFile.txt', client.rollMap.get( 'logfile' ),  function (err) {
+          if (err) throw err;
+          console.log('Deb!');
+          client.rollMap.set( 'logfile', '');
+    });
+});
+
 client.on( 'message', ( message ) =>
 {
-   if ( message.content.slice( 0, config.prefix.length ) === prefix && message.content.length > 1 && !message.author.bot )
+   if ( !message.author.bot && message.content.length > 1 && message.content.slice( 0, prefix.length ) === prefix  ||  message.content.slice( 0, prefix2.length ) === prefix2)
     {
       // RegEx Setup
         //- let args = message.split( ' ' );
@@ -228,7 +257,7 @@ client.on( 'message', ( message ) =>
                                 }
                             }
                             break;
-                        case 'di':  // Divine Inspiration; Deeds Point - doubles base Exponen
+                        case 'di':  // Divine Inspiration; Deeds Point - doubles base Exponent
                             if ( !currPool.inspired )
                             {
                                 currPool.arthaDice += currPool.exponent;
@@ -400,162 +429,166 @@ client.on( 'message', ( message ) =>
       // Help
         else if ( firstCmd === 'help' )
         {
-          //Flagged
-            if ( args[1] )
+            switch ( args[1] )
             {
-                switch ( args[1] )
-                {
-                    case 'co':
-                    case 'callon':
-                        msg += '\n__Call-On Trait__';
-                        msg += '\nFunction: Rerolls all traitor dice in your previous roll. Usable once per roll.';
-                        msg += '\nForm: `~co` or `~callon`';
-                        break;
-                    case 'dof':
-                        msg += '\n__Die of Fate__';
-                        msg += '\nFunction: Rolls a single die.';
-                        msg += '\nForm: `~dof` {tags}';
-                        msg += '\nExtra Tags:';
-                        msg += '\n\t` +#` adds `#` [1-9] to the result of the roll.';
-                        msg += '\n\t` -#` subtracts `#` [1-9] to the result of the roll.';
-                        break;
-                    case 'fate':
-                    case 'luck':
-                        msg += '\n__Luck, Fate point__';
-                        msg += "\nFunction: Rerolls all 6s in your previous roll if it wasn't open-ended or one traitor die if it was. Usable once per roll.";
-                        msg += '\nForm: `~fate` or `~luck`';
-                        break;
-                    case 'grace':
-                        msg += '\n__Saving Grace, Deeds Point__'
-                        msg += '\nFunction: Rerolls all Traitor Dice in your previous roll. Usable once per roll.';
-                        msg += '\nForm: `~grace`';
-                        break;
-                    case 'help':
-                        msg += '\n__Bot Manual__'
-                        msg += "\nFunction: displays information about Arenjii's various uses.";
-                        msg += '\nForm: `~help` optional `command`. eg. `~help diff`';
-                        msg += "\nNotes: if no commands are specified it will display a brief summary of all of arenjii's commands";
-                        break;
-                    case 'pr':
-                    case 'prev':
-                        msg += '\n__Display Previous Roll__';
-                        msg += '\nFunction: Displays your previous roll or that of the mentioned user, including all changes made to it afterwards such as with `~callon`, `~fate` and `~vs`';
-                        msg += '\nForm: `~pr` or `~prev` optional: `@user`. eg `~prev @Un-Arenjii#4939`';
-                        break;
-                    case 'diff':
-                    case 'difficulty':
-                    case 'rdc':
-                        msg += '\n__Difficulty Calculator__';
-                        msg += '\nFunction: Returns if a test is Routine, Difficult or Challenging.';
-                        msg += '\nForm: `~diff X Y` or `~difficulty X Y` or ~rdc X Y`';
-                        msg += '\n\t` X` is the number of dice rolled.';
-                        msg += '\n\t` Y` is the Obstacle of the test.';
-                        break;
-                    case 'test':
-                        msg += '\n__Areas for Improvement__';
-                        msg += '\nFunction: Displays a list of things that need testing.';
-                        msg += '\nForm: `~test`';
-                        break;
-                    case 'vs':
-                        msg += '\n__Versus Test__';
-                        msg += '\nFunction: Compares rolls. Which rolls are compared depends on how many mentions follow the command.';
-                        msg += '\nForm: `~vs {@user...}`';
-                        msg += "\nNotes:\n\t- No Mentions: compares all rolls in the VS stack (see the `vs` tag in the roll command). Clears the stack if successful.\n\t- One Mention: Compares mentioned person's last roll vs your last roll.\n\t- Two+ Mentions: Compares the last rolls of every person mentioned.";
-                        break;
-                    case 'roll':
-                        msg += '\n__Roll the Dice__';
-                        msg += '\nFunction: Rolls a pool of dice';
-                        msg += '\nForm: `~X#{!}`';
-                          msg += '\n\t`X` Accepts `b`, `g` or `w`. Determines the __Shade__ (Black, Grey or White respectively) of the roll.';
-                          msg += '\n\t`#` the __Base Exponent__ of the Test to be rolled [0-99].';
-                          msg += '\n\t`!` *optional*; adding this makes the roll Open-Ended';
-                        msg += '\nExtra Tags:';
-                          msg += '\n\t`ad#` __Advantage__ Adds `#` advantage dice to the roll.';
-                          msg += '\n\t`ar#` __Artha__ Adds `#` Artha dice to the roll.';
-                          /*Greed: 
-                            - Aids or hinders Resource tests
-                            - 1Pp: add [1-Greed] dice to a roll. Act as Artha Dice.
-                          Grief: 
-                            - 1Dp, add [Grief] dice to a spell/skill song exponent. Independantly Open-Ended.
-                          Hatred: 
-                            - 1/session: may test Hatred in place of any skill or stat if appropriate. Open-Ended.
-                            - 1Dp: add [Hatred] to the roll instead of doubling exponent. Independantly Open-Ended.
-                          Spite:
-                            - 1Dp: add [Spite] dice to a roll.
-                          Corruption: 
-                            - may test Corruption in place of Forte for spell tax
-                            - 1Fp: Corruption Exponent helps skill/stat roll. 
-                            - 1Pp: may test Corruption in place of any skill or stat
-                            - 1Dp: add [Corruption] to the roll instead of doubling exponent.
-                          */
-                        // Rune Casting, Nature of all things also function like this?
-                          msg += '\n\t`as#` __Astrology, FoRK__: Adds special Astrology FoRK dice. # = [Astrology exponent].';
-                          msg += "\n\t`bl ` __Beginners' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill";
-                          msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` (3 Max) Artha dice to the roll.';
-                          msg += '\n\t`di ` __Divine Inspiration, Deeds Point__: Adds [Base Exponent] Artha dice to the roll.';
-                          msg += '\n\t`ds#` __Disadvantage__: Adds `#` to the Base Obstacle.';
-                          msg += '\n\t`fk#` __FoRK__: Functionally identical to `ad`. See `as` to FoRK in Astrology';
-                          msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10].';
-                          msg += '\n\t`ns`  __Not Saved__: Do not save this roll. Several features use your previous roll';
-                          msg += '\n\t`ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#`.';
+                case 'co':
+                case 'callon':
+                    msg += '\n__Call-On Trait__';
+                    msg += '\nFunction: Rerolls all traitor dice in your previous roll. Usable once per roll.';
+                    msg += '\nForm: `~co` or `~callon`';
+                    break;
 
-                          msg += '\n\t`oe#` __Open-Ended__: Adds `#` dice to the roll that are Open-Ended independantly of the base roll';
-                          
-                          msg += '\n\t`ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle by `#`.';
-                          msg += '\n\t`vs ` __Versus Test__: Hide the results of the roll and add it to the VS Pile. Trigger the Versus Test with `~vs`.';
-                        msg += "\nNotes:\n\t- Its usually okay to include FoRKs and Advantage dice in your Exponent. The exception being when the `di` tag is included.\n\t- Similarly, unless the `bl` or `ox` tags are included it's alright to forgo the `ds` tag";
-                        break;
-                    case 'rac':
-                        msg += "This feature is in testing and has not been completed yet\n";
-                        msg += '\n__Range and Cover Guide__';
-                        msg += '\nFunction: a quick look up for the mechanics and interations of the various Range and Cover Maneuvers.';
-                        msg += '\nForm: `~rac {action} {action}`';
-                        msg += "\nNotes:\n\t- No actions: Displays a list of recognized maneuver keywords.\n\t- One action: displays the mechanics of the maneuver .\n\t- Two Actions: displays the interaction when the two maneuvers are scripted against eachother.";
-                        break;
-                    case 'fight':
-                    case 'prob':
-                        msg += "This feature has not been implemented yet";    break;
-                    case 'dow':
-                        msg += "This feature is in testing and has not been completed yet\n";
-                        msg += '\n__Duel of Wits Guide__';
-                        msg += '\nFunction: a quick look up for the mechanics and interations of the various Duel of Wits actions.';
-                        msg += '\nForm: `~dow {action} {action}`';
-                        msg += "\nNotes:\n\t- No actions: Displays a list of recognized action keywords.\n\t- One action: displays the mechanics of the action .\n\t- Two Actions: displays the interaction when the two actions are scripted against eachother.";
-                        break;
-                    default:
-                        msg += `I don't have a "${args[1]}" command...`;
-                    }
-            }
-          //No Flags
-            else
-            {
-                msg += '\nI am Arenjii, the White God of Progression.';
+                case 'diff':
+                case 'difficulty':
+                case 'rdc':
+                    msg += '\n__Difficulty Calculator__';
+                    msg += '\nFunction: Returns if a test is Routine, Difficult or Challenging.';
+                    msg += '\nForm: `~diff X Y` or `~difficulty X Y` or ~rdc X Y`';
+                    msg += '\n\t` X` is the number of dice rolled.';
+                    msg += '\n\t` Y` is the Obstacle of the test.';
+                    break;
 
-                msg += '\n\nAll commands are case insensitive so yell if you like. Speak slowly though, add spaces between tags so I can understand you.';
-                msg += '\nCurly braces `{}` denote optional features explained in the help text for the individual command.';
-                msg += '\nFor more detail on individual commands use `~help {command}`.\n\tExample: `~help vs`.';
+                case 'dof':
+                    msg += '\n__Die of Fate__';
+                    msg += '\nFunction: Rolls a single die.';
+                    msg += '\nForm: `~dof` {tags}';
+                    msg += '\nExtra Tags:';
+                    msg += '\n\t` +#` adds `#` [1-9] to the result of the roll.';
+                    msg += '\n\t` -#` subtracts `#` [1-9] to the result of the roll.';
+                    break;
 
-                msg += '\n\n`~co`: See `~callon`';
-                msg += '\n`~callon`: __Call On Trait__ rerolls all traitor dice. Tracked separatetly from Saving Grace.';
-                msg += '\n`~diff X Y`: See `difficulty`';
-                msg += '\n`~difficulty X Y`: __Difficulty Calculator__ Returns if a roll of `X` dice against an Ob of `Y` is Routine, Difficult or Challenging.';
-                msg += '\n`~dof {tags...}`: __Die of Fate__ Rolls a single die.';
-                msg += '\n`~dow` __Duel of Wits Guide__ **In Testing**';
-                msg += '\n`~fate`: See `~luck`.';
-                msg += '\n`~fight` __Fight! Guide__ **Unimplemented**';
-                msg += '\n`~grace`: __Saving Grace, Deeds Point__ Rerolls all traitor dice, tracked separately from Call-on.';
-                msg += '\n`~help {command}`: __Specific Help__ gives more details about individual commands.';
-                msg += "\n`~luck`: __Luck, Fate point__ Rerolls all 6s in the previous roll if it wasn't open-ended or one traitor die if it was. Only useable once per roll";
-                msg += '\n`~pr {@user}`: See `~prev`';
-                msg += '\n`~prev {@user}`: __Previous Roll__: displays the previous roll.';
-                msg += '\n`~prob`: __Probability__: **Unimplemented** Calculates the possible outcomes of a given roll.';
-                msg += '\n`~rac`__Range and Cover Guide__ **In Testing**';
-                msg += '\n`~rdc X Y`: See `difficulty`';
-                msg += '\n`~test`: __How Can I Help?__ displays a list of things that need testing.';
-                msg += '\n`~vs {@user...}`: __Versus Test__ Pits two or more rolls against eachother.';
-                msg += '\n\n`~b#{!}`, `~g#{!}`, `~w#{!}` all include `{tags...}`. Rolls a pool of `#` [0-99] black, grey or white dice respectively.\n\ttype `~help roll` for more info on how to roll.';
+                case 'dow':
+                    msg += 'This feature is in testing and has not been completed yet\n';
+                    msg += '\n__Duel of Wits Guide__';
+                    msg += '\nFunction: a quick look up for the mechanics and interations of the various Duel of Wits actions.';
+                    msg += '\nForm: `~dow {action} {action}`';
+                    msg += '\nNotes:\n\t- No actions: Displays a list of recognized action keywords.\n\t- One action: displays the mechanics of the action .\n\t- Two Actions: displays the interaction when the two actions are scripted against eachother.';
+                    break;
 
-                msg += '\n\nPlease PM Saelvarath#5785 if you find any bugs or have other comments or suggestions!';
+                case 'fate':
+                case 'luck':
+                    msg += '\n__Luck, Fate point__';
+                    msg += '\nFunction: Rerolls all 6s in your previous roll if it wasn\'t open-ended or one traitor die if it was. Usable once per roll.';
+                    msg += '\nForm: `~fate` or `~luck`';
+                    break;
+
+                case 'grace':
+                    msg += '\n__Saving Grace, Deeds Point__'
+                    msg += '\nFunction: Rerolls all Traitor Dice in your previous roll. Usable once per roll.';
+                    msg += '\nForm: `~grace`';
+                    break;
+
+                case 'help':
+                    msg += '\n__Bot Manual__'
+                    msg += '\nFunction: displays information about Arenjii\'s various uses.';
+                    msg += '\nForm: `~help {command}`. eg. `~help diff`';
+                    msg += '\nNotes: if no commands are specified it will display a brief summary of all of Arenjii\'s commands\n\t';
+                    break;
+
+                case 'pr':
+                case 'prev':
+                    msg += '\n__Display Previous Roll__';
+                    msg += '\nFunction: Displays your previous roll or that of the mentioned user, including all changes made to it afterwards such as with `~callon`, `~fate` and `~vs`';
+                    msg += '\nForm: `~pr` or `~prev` optional: `@user`. eg `~prev @Un-Arenjii#4939`';
+                    break;
+
+                case 'rac':
+                    msg += 'This feature is in testing and has not been completed yet\n';
+                    msg += '\n__Range and Cover Guide__';
+                    msg += '\nFunction: a quick look up for the mechanics and interations of the various Range and Cover Maneuvers.';
+                    msg += '\nForm: `~rac {action} {action}`';
+                    msg += '\nNotes:\n\t- No actions: Displays a list of recognized maneuver keywords.\n\t- One action: displays the mechanics of the maneuver .\n\t- Two Actions: displays the interaction when the two maneuvers are scripted against eachother.';
+                    break;
+
+                case 'roll':
+                    msg += '\n__Roll the Dice__';
+                    msg += '\nFunction: Rolls a pool of dice';
+                    msg += '\nForm: `~X#{!}`';
+                        msg += '\n\t`X` Accepts `b`, `g` or `w`. Determines the __Shade__ (Black, Grey or White respectively) of the roll.';
+                        msg += '\n\t`#` the __Base Exponent__ of the Test to be rolled [0-99].';
+                        msg += '\n\t`!` *optional*; adding this makes the roll Open-Ended';
+                    msg += '\nExtra Tags:';
+                        msg += '\n\t`ad#` __Advantage__ Adds `#` advantage dice to the roll.';
+                        msg += '\n\t`ar#` __Artha__ Adds `#` Artha dice to the roll.';
+                        /*Greed: 
+                        - Aids or hinders Resource tests
+                        - 1Pp: add [1-Greed] dice to a roll. Act as Artha Dice.
+                        Grief: 
+                        - 1Dp, add [Grief] dice to a spell/skill song exponent. Independantly Open-Ended.
+                        Hatred: 
+                        - 1/session: may test Hatred in place of any skill or stat if appropriate. Open-Ended.
+                        - 1Dp: add [Hatred] to the roll instead of doubling exponent. Independantly Open-Ended.
+                        Spite:
+                        - 1Dp: add [Spite] dice to a roll.
+                        Corruption: 
+                        - may test Corruption in place of Forte for spell tax
+                        - 1Fp: Corruption Exponent helps skill/stat roll. 
+                        - 1Pp: may test Corruption in place of any skill or stat
+                        - 1Dp: add [Corruption] to the roll instead of doubling exponent.
+                        */
+                    // Rune Casting, Nature of all things also function like this?
+                        msg += '\n\t`as#` __Astrology, FoRK__: Adds special Astrology FoRK dice. # = [Astrology exponent].';
+                        msg += '\n\t`bl ` __Beginners\' Luck__: Multiplies Base Obstacle by 2, calculates if the test goes towards the ability or the skill';
+                        msg += '\n\t`bn#` __Boon, Deeds Point__: Adds `#` (3 Max) Artha dice to the roll.';
+                        msg += '\n\t`di ` __Divine Inspiration, Deeds Point__: Adds [Base Exponent] Artha dice to the roll.';
+                        msg += '\n\t`ds#` __Disadvantage__: Adds `#` to the Base Obstacle.';
+                        msg += '\n\t`fk#` __FoRK__: Functionally identical to `ad`. See `as` to FoRK in Astrology';
+                        msg += '\n\t`he#` __Helper Exponent__: Adds Help Dice from an Exponent of `#` [1-10].';
+                        msg += '\n\t`ns`  __Not Saved__: Do not save this roll. Several features use your previous roll';
+                        msg += '\n\t`ob#` __Obstacle, Base__: Set the Base Obstacle of the task to `#`.';
+
+                        msg += '\n\t`oe#` __Open-Ended__: Adds `#` dice to the roll that are Open-Ended independantly of the base roll';
+                        
+                        msg += '\n\t`ox#` __Obstacle, Multiplier__: Multiplies the Base Obstacle by `#`.';
+                        msg += '\n\t`vs ` __Versus Test__: Hide the results of the roll and add it to the VS Pile. Trigger the Versus Test with `~vs`.';
+                    msg += '\nNotes:\n\t- Its usually okay to include FoRKs and Advantage dice in your Exponent. The exception being when the `di` tag is included.\n\t- Similarly, unless the `bl` or `ox` tags are included it\'s alright to forgo the `ds` tag';
+                    break;
+
+                case 'test':
+                    msg += '\n__Areas for Improvement__';
+                    msg += '\nFunction: Displays a list of things that need testing.';
+                    msg += '\nForm: `~test`';
+                    break;
+
+                case 'vs':
+                    msg += '\n__Versus Test__';
+                    msg += '\nFunction: Compares rolls. Which rolls are compared depends on how many mentions follow the command.';
+                    msg += '\nForm: `~vs {clear} {@user...}`';
+                    msg += '\nNotes:\n\t- `clear`: Empties the VS Stack (see the `vs` tag in `~help roll`). \n\t- No Mentions: compares all rolls in the VS stack. Clears the stack if successful.\n\t- One Mention: Compares mentioned person\'s last roll vs your last roll.\n\t- Two+ Mentions: Compares the last rolls of every person mentioned.';
+                    break;
+
+                case 'fight':
+                case 'prob':
+                    msg += 'This feature has not been implemented yet';
+                    break;
+
+                default:
+                    msg += '\n\nAll commands are case insensitive so yell if you like. Speak slowly though, add spaces between tags so I can understand you.';
+                    msg += '\nCurly braces `{}` denote optional features explained in the help text for the individual command.';
+                    msg += '\nFor more detail on individual commands use `~help {command}`.\n\tExample: `~help vs`.';
+    
+                    msg += '\n\n`~co`: See `~callon`';
+                    msg += '\n`~callon`: __Call On Trait__ rerolls all traitor dice. Tracked separatetly from Saving Grace.';
+                    msg += '\n`~diff X Y`: See `difficulty`';
+                    msg += '\n`~difficulty X Y`: __Difficulty Calculator__ Returns if a roll of `X` dice against an Ob of `Y` is Routine, Difficult or Challenging.';
+                    msg += '\n`~dof {tags...}`: __Die of Fate__ Rolls a single die.';
+                    msg += '\n`~dow` __Duel of Wits Guide__ **In Testing**';
+                    msg += '\n`~fate`: See `~luck`.';
+                    msg += '\n`~fight` __Fight! Guide__ **Unimplemented**';
+                    msg += '\n`~grace`: __Saving Grace, Deeds Point__ Rerolls all traitor dice, tracked separately from Call-on.';
+                    msg += '\n`~help {command}`: __Specific Help__ gives more details about individual commands.';
+                    msg += '\n`~luck`: __Luck, Fate point__ Rerolls all 6s in the previous roll if it wasn\'t open-ended or one traitor die if it was. Only useable once per roll';
+                    msg += '\n`~pr {@user}`: See `~prev`';
+                    msg += '\n`~prev {@user}`: __Previous Roll__: displays the previous roll.';
+                    msg += '\n`~prob`: __Probability__: **Unimplemented** Calculates the possible outcomes of a given roll.';
+                    msg += '\n`~rac`__Range and Cover Guide__ **In Testing**';
+                    msg += '\n`~rdc X Y`: See `difficulty`';
+                    msg += '\n`~test`: __How Can I Help?__ displays a list of things that need testing.';
+                    msg += '\n`~vs {@user...}`: __Versus Test__ Pits two or more rolls against eachother.';
+                    msg += '\n\n`~b#{!}`, `~g#{!}`, `~w#{!}` all include `{tags...}`. Rolls a pool of `#` [0-99] black, grey or white dice respectively.\n\ttype `~help roll` for more info on how to roll.';
+    
+                    msg += '\n\nPlease PM Saelvarath#5785 if you find any bugs or have other comments or suggestions!\n\tA note to all using phones or international keyboards: the `~` can be replaced by `\\` in all commands for less hassle.';
+
             }
 
             if ( msg !== "" )
@@ -563,14 +596,15 @@ client.on( 'message', ( message ) =>
                 message.author.send( msg );
                 msg = `**${message.author.username} has queried the cosmos.**`;
             }
-           
         }
       // Call On trait & Deeds point Saving Grace
         else if ( firstCmd === 'co' || firstCmd === 'callon' || firstCmd === 'grace' )
         {
             let prevPool = client.rollMap.get( message.author.id );
 
-            if ( prevPool.calledOn && firstCmd.startsWith( 'c' ) )
+            if ( !prevPool )
+                {   msg += 'You need to make a roll first';     }
+            else if ( prevPool.calledOn && firstCmd.startsWith( 'c' ) )
                 {   msg += 'You have already used a Call-on trait for this roll.';   }
             else if ( prevPool.graced && firstCmd === 'grace' )
                 {   msg += `You already had a Saving Grace.`;   }
@@ -1110,15 +1144,14 @@ client.on( 'message', ( message ) =>
                       YS ATUN VARANMA PRESH*/
                 case 8:
                     msg += "To train with the sword, first master sweeping. When you have mastered sweeping, you must master the way of drawing water. Once you have learned how to draw water, you must split wood. Once you have split wood, you must learn the arts of finding the fine herbs in the forest, the arts of writing, the arts of paper making, and poetry writing. You must become familiar with the awl and the pen in equal measure. When you have mastered all these things you must master building a house. Once your house is built, you have no further need for a sword, since it is an ugly piece of metal and its adherents idiots."; break;
-
                 case 9:
-                    msg += "Consider: there is no such thing as a sword.";
+                    msg += "Consider: there is no such thing as a sword."; break;
                 case 10:
                     msg += "Your stance must be wide. You must not be spare with the fluidity of your wrists or shoulders. You must have grip on the handle that is loose and unstrained. I heard it said you must be tender with your sword grip, as though with a lover. This is patently false. A sword is not your lover. It is a hideous tool for separating men from their vital fluids.";    break;
                 case 11:
                     msg += "Going onwards, you must adjust hands as needed, do not keep the blade close to your body, keep your breathing steady. This is the life cut. You must watch your footwork. Your feet must be controlled whether planted on fire, air, water, or earth in equal measure.";    break;
                 case 12:
-                    msg += "Breathing is very important! Is the violent breath of life in you not hot? Exhale! Exult!";    break;
+                    msg += "Breathing is very important! Is the violent breath of life in you not hot? Exhale! Exult!"; break;
                 case 13:
                     msg += "You must strive for attachment-non-attachment when cutting. Your cut must be sticky and resolute. A weak, listless cut is a despicable thing. But you must also not cling to your action, or its result. Clinging is the great error of men. A man who strikes without thought of his action can cut God.";    break;
                 case 14:
@@ -1517,7 +1550,7 @@ client.on( 'message', ( message ) =>
             B + W + G 	= B.
             W + G + G 	= G.
             W + W + G 	= G.
-            **/
+            */
             let contenders = [];
             let firstDoS;
 
@@ -1534,8 +1567,15 @@ client.on( 'message', ( message ) =>
                 Note that if you fail, but your only opponent succeeds with 0 extra successes, (TODO: this should be verified) the versus test is still a tie.
                 */
 
+          
+            if ( args[1] === "clear")
+            {
+                client.rollMap.set( message.channel.id, [] );
+                contenders = null;
+                msg += 'The VS Stack has been emptied.'
+            }
           // No mentions
-            if ( message.mentions.users.keyArray().length === 0 )
+            else if ( message.mentions.users.keyArray().length === 0 )
             {
                 contenders = client.rollMap.get( message.channel.id );
 
@@ -1546,7 +1586,7 @@ client.on( 'message', ( message ) =>
                 }
                 else
                 {
-                    msg += '\nThe VS Stack is empty...';
+                    msg += '\nI need at least 2 rolls to perform a VS test';
                 }
             }
           // One mention
@@ -1591,7 +1631,8 @@ client.on( 'message', ( message ) =>
                     {   msg += `A free for all!`;   }
             }
 
-            if ( contenders !== null && contenders.length > 0 )
+         // Final Calculations
+            if ( contenders !== null && contenders.length > 1 )
             {
               //order by degree of success
                 contenders.sort( function( a, b ) { return ( ( b.successes + b.astroResult - b.ObAddition ) / b.ObMultiplier - ( a.successes + a.astroResult - a.ObAddition ) / a.ObMultiplier ); } );
@@ -1612,7 +1653,7 @@ client.on( 'message', ( message ) =>
                         let totalOb = contestant.obstacle * contestant.ObMultiplier + contestant.ObAddition;
                         let totalPool = contestant.exponent + contestant.nonArtha + contestant.astroDice + contestant.helperDice;
 
-                        msg += `\n${contestant.reps === 0 ? contestant.owner : `**${contestant.owner.username} ${contestant.reps}**`} rolled ${totalSuc} against an Ob of ${totalOb}`
+                        msg += `\n${contestant.reps === 0 ? contestant.owner : `**${contestant.owner.username} ${contestant.reps}**`} rolled ${totalSuc} against an Ob of ${totalOb}`;
 
                         if ( contestant.ObMultiplier > 1 || contestant.ObAddition > 0 )
                         {
@@ -1627,11 +1668,11 @@ client.on( 'message', ( message ) =>
 
                             if ( testDiff === 'Routine' )
                             {
-                                msg += totalSuc >= totalOb ? `, passing by ${totalSuc - totalOb} and showing Aptitude for a new Skill` : `, failing, but advancing towards a new Skill`
+                                msg += totalSuc >= totalOb ? `, passing by ${totalSuc - totalOb} and showing Aptitude for a **new Skill**` : `, failing, but advancing towards a **new Skill**`;
                             }
                             else
                             {
-                                msg += totalSuc >= totalOb ? `, passing a ${testDiff} test for the Root Stat by ${totalSuc - totalOb}` : `, failing a ${testDiff} test for the Root Stat`
+                                msg += totalSuc >= totalOb ? `, passing a ${testDiff} test for the **Root Stat** by ${totalSuc - totalOb}` : `, failing a ${testDiff} test for the **Root Stat**`;
                             }
                         }
                         else
@@ -1646,6 +1687,15 @@ client.on( 'message', ( message ) =>
                     {   msg += '/nYou need two to tango.';   }
             }
            
+        }
+        else if (  firstCmd === 'writelog' && message.author.id === config.boss )
+        {
+            fs.appendFile( 'logFile.txt', client.rollMap.get( 'logfile' ), function (err) {
+                if (err) throw err;
+                console.log('Saved!');
+                client.rollMap.set( 'logfile', '');
+                });
+            
         }
       // Yisun easter egg
         else if ( firstCmd === 'yisun' && message.author.id === config.boss )
@@ -1683,6 +1733,11 @@ client.on( 'message', ( message ) =>
         if ( msg !== '' )
         {
             message.channel.send( msg );
+
+          // Log
+            var log = client.rollMap.get( 'logfile',);
+            log += `\n@${message.author.username}, #${message.channel.name}\t\t\t${message.content}`;
+            client.rollMap.set( 'logfile', log );
         }
     }
 });
