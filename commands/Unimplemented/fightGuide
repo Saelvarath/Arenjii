@@ -1,0 +1,13 @@
+/*
+msg += '\n`~fight` __Fight! Guide__ **Unimplemented**';
+
+case 'fight':
+	msg += 'This feature has not been implemented yet';
+	break;
+*/
+
+//+ Fight! Guide
+		else if ( firstCmd === 'fight' )
+		{
+
+		}

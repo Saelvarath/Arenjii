@@ -1,0 +1,133 @@
+/*
+msg += '\n`~dow` __Duel of Wits Guide__ **In Testing**';
+
+case 'dow':
+	msg += 'This feature is in testing and has not been completed yet\n';
+	msg += '\n__Duel of Wits Guide__';
+	msg += '\nFunction: a quick look up for the mechanics and interations of the various Duel of Wits actions.';
+	msg += '\nForm: `~dow {action} {action}`';
+	msg += '\nNotes:\n\t- No actions: Displays a list of recognized action keywords.\n\t- One action: displays the mechanics of the action .\n\t- Two Actions: displays the interaction when the two actions are scripted against eachother.';
+	break;
+*/
+
+//+ Duel of Wits Guide
+		else if ( firstCmd === 'dow' )
+		{
+			const DoWInterations =  
+			[ 
+				[ '-', '-', '-', 1, 'VS', 'VS', '-', '-', '-' ],	// Avoid
+				[ 1, 1, 1, 1, 'VS', 1, 'VS', 1, 1 ],	// Dismiss
+				[ '-', '-', 'VS', 'VS', 'VS', '-', 1, 1, 1 ],	// Feint
+				[ 'VS', "opponent's Will exponent", 'VS', "opponent's Will exponent", 'VS', "opponent's Will exponent", "opponent's Will exponent", "opponent's Will exponent", "opponent's Will exponent" ],	// Incite
+				[ 'VS', 'VS', 'VS', 'VS', 'VS', 'VS', 'VS', 1, 1 ],	// Obfuscate
+				[ 'VS', 1, 1, 1, 'VS', 1, 'VS', 1, 1 ],	// Point
+				[ '-', 'VS', '-', '-', 'VS', 'VS', '-', 0, 0 ],	// Rebuttal
+				[ '-', '-', '-', '-', '-', '-', '-', '-', '-' ],	// hesitate
+				[ '-', '-', '-', '-', '-', '-', '-', '-', '-' ] 
+			];	// casting, praying etc.
+
+		  //[name], [test], [std effect], [VS effect], {special}
+			const DoWAction = 
+			[ 
+				[ "Avoid the Topic",
+					"Will",
+					"-",
+					"Your successes are subtracted from your opponent's successes, reducing their effectiveness.\n\tActions that have their successes reduced to zero fail and their effects are canceled.",
+					"Avoid never suffers a double obstacle penalty for stat versus skill.", ],	// Avoid
+				[ "Dismiss Opponent", 
+					"Coarse Persuasion, Command, Intimidation, Oratory, Religious Diatribe, Rhetoric, Stentorious Debate, Ugly Truth", 
+					"Each success subtracts from your opponent's body of argument.",
+					"Subtract the margin of success from your opponent's body of argument.\n\tAgainst the Dismiss action the winner subtracts ALL successes instead.",
+					"Dismiss adds +2D to the character’s skill.\n\tIf the a Dismiss action fails to win the duel, it's user must change their next volly to a hesitate action." ],	// Dismiss
+				[ "Feint",
+					"Extortion, Falsehood, Interrogation, Persuasion, Poisonous Platitudes, Religious Diatribe, Rhetoric, Soothing Platitudes, Seduction", 
+					"Each success subtracts from your opponent's body of argument.",
+					"The margin of success is subtracted from your opponents body of argument." ],	// Feint
+				[ "Incite Emotion",
+					"Coarse Persuasion, Command, Extortion, Falsehood, Intimidation, Seduction, Ugly Truth",
+					"If successful the victim must pass a Steel test or their next volley is changed to a hesitation action.\n\tIf Incite fails the margin of failure is added as advantage dice to the opponent's next test.",
+					"If successful the victim must pass a Steel test or their next volley is changed to a hesitation action.\n\tIf Incite fails the margin of failure is added as advantage dice to the opponent's next test." ],	// Incite
+				[ "Obfuscate",
+					"Falsehood, Oratory, Poisonous Platitudes, Rhetoric, Religious Diatribe, Soothing Platitudes, Stentorious Debate, Suasion, Ugly Truth",
+					"-",
+					"On a tie the victim loses their current action.\n\tIf Obfusticate exceeds it's Ob, then the victim also suffers +1 Ob to their next action.\n\tIf Obfuscate fails the opponent gains +1D to their next action." ],	// Obfuscate
+				[ "Make a Point",
+					"Coarse Persuasion, Interrogation, Oratory, Persuasion, Poisonous Platitudes, Rhetoric, Stentorious Debate",
+					"Subtract your successes from your opponent's body of argument.",
+					"Subtract your margin of success from your opponent's body of argument." ],	// Point
+				[ "Rebuttal",
+					"Extortion, Interrogation, Oratory, Persuasion, Poisonous Platitudes, Rhetoric, Stentorious Debate, Suasion",
+					"-",
+					"Successes on attack dice are subtracted from your opponent's Body of Argument.\n\tSuccesses from the defense roll are subtracted from the opponent's successes.",
+					"Before you opponent rolls divide your dice between attack and defense. Each pool must have at least one die in it.\n\tAny penalties to the action are applied to both pools but bonuses to the action only apply to one."],
+				[ "Hesitate", // Stand and Drool, Run Screaming, Swoon, 
+					"-",
+					"The character is not actively participating in the Duel of Wits and is vulnerable.", 
+					"The chacter can take no other action for now. Better luck with that Steel test next time!" ],
+				[ "Special", //spell casting, praying, singing, howling, etc. 
+					"Varies", 
+					"The character too busy to actively participate in the Duel of Wits and is vulnerable. I hope it's worth it!",
+					"The character too busy to actively participate in the Duel of Wits and is vulnerable. I hope it's worth it!"]
+			];
+
+		  // no arguements
+			if ( args.length === 1 )
+			{
+				msg += "Recognized actions are:\n\t*avoid, cast, command, dismiss, drool, drop, fall, feint, hesitate, howl, incite, obfuscate, point, pray, prone, rebuttal, run, scream, screaming, sing, spell, spirit, stand, swoon*";
+			}
+		  // 1 arguement: displays info on specific action.
+			else if ( args.length === 2 )
+			{
+				let act = actionConverter( 'd', args[1] );
+
+				if (  typeof DoWAction[act] != 'undefined' )
+				{
+					msg += `**${DoWAction[act][0]}**\n*Tests:*\n\t${DoWAction[act][1]}`;
+
+					if (DoWAction[act].length === 5 )
+					{
+						msg += `\n*Special:*\n\t${DoWAction[act][4]}`;
+					}
+
+					msg += `\n*Standard Test Effect:*\n\t${DoWAction[act][2]}`;
+					msg += `\n*Versus Test Effect:*\n\t${DoWAction[act][3]}`;
+
+					message.author.send( msg );
+
+					msg =  `**${message.author.username} has queried the cosmos.**`;
+				}
+				else 
+					{	msg += "I don't know that action..."	}
+			}
+		  // 2 arguements displays info on the interation of the two specified actions.
+			else if ( args.length === 3 )
+			{
+				let a1 = actionConverter( 'd', args[1] );
+				let a2 = actionConverter( 'd', args[2] );
+
+				if ( a1 !== -1 && a2 !== -1)
+				{
+					msg += `Contestant 1's ${DoWAction[a1][0]} action `;
+
+					if ( DoWInterations[a1][a2] === 'VS' )
+					{	msg += `makes a VS test against their oppenent's roll\n${DoWAction[a1][3]}`;	}
+					else if ( DoWInterations[a1][a2] === '-' )
+					{	msg += `is vulnerable against their opponent's action and makes no roll`;	}
+					else
+					{	msg += `rolls a standard test against and Ob of ${DoWInterations[a1][a2]}\n\t${DoWAction[a1][2]}`;	}
+
+					msg += `\n\nContestant 2's ${DoWAction[a2][0]} action `;
+
+					if ( DoWInterations[a2][a1] === 'VS' )
+					{	msg += `makes a VS test against their oppenent's roll\n${DoWAction[a2][3]}`;	}
+					else if ( DoWInterations[a2][a1] === '-' )
+					{	msg += `is vulnerable against their opponent's action and makes no roll`;	}
+					else
+					{	msg += `rolls a standard test against and Ob of ${DoWInterations[a2][a1]}\n\t${DoWAction[a2][2]}`;	}
+				}
+				else
+				{	msg += "Use `~dow` to see a list of recognized actions.";	}
+			}
+			else
+			{	msg = "Something isn't right... have you tried the `~help dow` command?";	}
+		}

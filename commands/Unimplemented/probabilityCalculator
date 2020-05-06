@@ -1,0 +1,13 @@
+/*
+msg += '\n`~prob`: __Probability__: **Unimplemented** Calculates the possible outcomes of a given roll.';
+
+case 'prob':
+	msg += 'This feature has not been implemented yet';
+	break;
+*/
+
+//+ Dice result probability calculator
+		else if ( firstCmd === 'prob' )
+		{
+			msg += 'Probability math is hard. it will be a while before this gets completed.';
+		}

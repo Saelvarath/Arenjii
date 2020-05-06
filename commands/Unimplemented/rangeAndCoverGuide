@@ -1,0 +1,174 @@
+/*
+msg += '\n`~rac`__Range and Cover Guide__ **In Testing**';
+
+case 'rac':
+	msg += 'This feature is in testing and has not been completed yet\n';
+	msg += '\n__Range and Cover Guide__';
+	msg += '\nFunction: a quick look up for the mechanics and interations of the various Range and Cover Maneuvers.';
+	msg += '\nForm: `~rac {action} {action}`';
+	msg += '\nNotes:\n\t- No actions: Displays a list of recognized maneuver keywords.\n\t- One action: displays the mechanics of the maneuver .\n\t- Two Actions: displays the interaction when the two maneuvers are scripted against eachother.';
+	break;
+*/
+
+
+//+ Range and Cover Guide
+else if ( firstCmd === 'rac' )
+{
+  //Name, Test, test type, move type, Effect
+	const RaCActions = 
+	[
+		['Charge', 
+			'Steel', 'steel', 
+			'advance',
+			'If successful your opponent gets one free shot, then you advance one range category.\n\tIf tied, everyone on both teams gets to shoot.\n\tIf failed, your opponent gets two free shots and you hesitate in the next volley.'],
+		['Close Distance', 
+			'Speed ', 'stat',
+			'advance',
+			'If successful, advance one range category.'],
+		['Fall Back', 
+			'Tactics + FoRKs', 'skill',
+			'withdraw', 
+			"If successful, withdraw one range category.\n\tThen, for two successes, you can re-range all combatant's weapons"],
+		['Flank', 
+			'Tactics + FoRKs', 'skill',
+			'advance',
+			'If successful, advance one range category.'],
+		['Hold Position', 
+			'Perception Vs Stat, Observation Vs Skill', 'special',
+			'hold',
+			"Special: Advantage dice from a position are carried over into your next maneuver.\n\tFirst, the movement portion of your opponent's maneuver automatically occurs.\n\tThen, take a free shot."], //doesn't get advantage from Stride
+		['Maintain Distance', 
+			'Speed', 'stat',
+			'hold',
+			'If successful, previous range catagory is unchanged.'],
+		['Retreat', 
+			'Steel +1D', 'steel',
+			'withdraw', 
+			'If successful, your opponent gets a free shot, then you withdraw one range category.\n\tIf tied, your opponent gets two free shots.\n\tIf failed, your opponents gets two free shots plus you hesitate in the next volley.'],
+		['Sneak In', 
+			'Stealthy + FoRKs', 'skill',
+			'advance',
+			'If successful, advance one range category.'],
+		['Sneak Out', 
+			'Stealthy + FoRKs', 'skill',
+			'withdraw', 
+			'If successful, withdraw one range category.'],
+		['Withdraw', 
+			'Speed +2D', 'stat',
+			'withdraw', 
+			"Special: All actions taken cost two successes.\n\tIf successful, withdraw one range category and you can take an action to remain at your current range then re-range all combatant's weapons."],
+		['Stand and Drool',
+			'-', '-',
+			'hold',
+			"The Ob for your opponent's Positioning test is 1 and they may take an action to capture you if within optimal range"],
+		['Run Screaming',
+			'Speed or Steel', 'Stat',
+			'withdraw', 
+			'You drop what you are holding and flee while screaming.\n\tIf successful, you withdraw one range catagory but can make no aggressive actions.\n\tYour opponent may take an action to capture you if within optimal range'],
+		['Fall Prone and Beg for Mercy',
+			'-', '-',
+			'hold',
+			"Your opponent's next positioning test is at Ob 1, but once you recover you have a 2D position"],
+		['Swoon',
+			'-', '-',
+			'hold',
+			"Special: Immediately make a free Stealthy or Inconspicuous test against your opponent's Observation.\n\tIf successful they lose track of you and you awake later cold and alone.\n\tIf failed their next positioning test is at Ob 1"]
+	];
+
+	// no arguements
+	if ( args.length === 1 )
+	{
+		msg += "Recognized Maneuvers are:\n\t*Charge, Close, Fall, FallBack, Fall_Back, Flank, Hold, Maintain, Retreat, SneakIn, Sneak_In, SneakOut, Sneak_Out, Withdraw*";
+		//
+	}
+	// 1 arguement: displays info on specific action.
+	else if ( args.length === 2 )
+	{
+		let act = actionConverter( 'r', args[1] );
+
+		if ( typeof RaCActions[act] != 'undefined' )
+		{
+			msg += `**${RaCActions[act][0]}**`;
+			msg += RaCActions[act][1] !== '-' ? `\n*Tests:*\t${RaCActions[act][1]} + weapon range + position${act != 4 ? ' + stride' : ''}.` : '';
+
+			msg += `\n*Effect:*\n\t${RaCActions[act][4]}`;
+
+			message.author.send( msg );
+
+			msg =  `**${message.author.username} has queried the cosmos.**`;
+		}
+		else 
+			{	msg += "I don't know that maneuver..."	}
+	}
+  // 2 arguements displays info on the interation of the two specified actions.
+	else if ( args.length === 3 )
+	{
+		let a1 = actionConverter( 'r', args[1] );
+		let a2 = actionConverter( 'r', args[2] );
+
+		if ( a1 !== -1 && a2 !== -1)
+		{
+			msg += `**${RaCActions[a1][0]}**\nRolls `;
+
+			if (  RaCActions[a1][1] !== '-' )
+			{
+				if ( RaCActions[a1][2] === 'special' )
+				{
+					if ( RaCActions[a2][2] !== 'skill')
+						{	msg += 'Perception';	}
+					else
+						{	msg += 'Observation';	}
+				}
+				else
+					{	msg += RaCActions[a1][1];	}
+
+				msg += ` plus modifiers gained from weapon range${a1 != 4 ? `, position and stride` : ` and position`}${ RaCActions[a2][2] === 'skill' && RaCActions[a1][2] === 'stat' ? ' at a __double Ob penalty__' : ''}.`;
+			}
+			msg += `\n\t${RaCActions[a1][4]}`;
+
+
+			msg += `\n\n**${RaCActions[a2][0]}**\nRolls `;
+
+			if (  RaCActions[a2][1] !== '-' )
+			{
+				if ( RaCActions[a2][2] === 'special' )
+				{
+					if ( RaCActions[a1][2] !== 'skill')
+						{	msg += 'Perception';	}
+					else
+						{	msg += 'Observation';	}
+				}
+				else
+					{	msg += RaCActions[a2][1];	}
+
+				msg += ` plus modifiers gained from weapon range${a2 != 4 ? `, position and stride` : ` and position`}${ RaCActions[a1][2] === 'skill' && RaCActions[a2][2] === 'stat' ? ' at a __double Ob penalty__' : ''}.`;
+			}
+			msg += `\n\t${RaCActions[a2][4]}`;
+
+
+		  //+ TIES
+			if ( RaCActions[a1][3] === 'advance' && RaCActions[a2][3] === 'advance' )
+			{
+				/*
+				Close VS Flank,					 Close Wins.
+				Sneak In VS Close | Charge,		 Sneak In Wins. 
+				Flank Vs Sneak In | Charge,		 Flank wins. 
+				Charge Vs Close					 Charge wins.
+				*/
+			}
+			else if ( RaCActions[a1][3] === 'withdraw' && RaCActions[a2][3] === 'withdraw' )
+			{
+				/*
+				Withdraw Vs Fall Back				Withdraw wins.
+				Sneak Out Vs Withdraw | Retreat,	Sneak Out Wins.
+				Fall Back Vs Sneak Out | Retreat,	Fall Back Wins.
+				Retreat Vs Withdraw,				Retreat Wins.
+				*/
+			}
+		}
+		else
+		{	msg += "Use `~rac` to see a list of recognized actions.";	}
+	}
+	else
+	{	msg = "Something isn't right... have you tried the `~help rac` command?";	}		
+}

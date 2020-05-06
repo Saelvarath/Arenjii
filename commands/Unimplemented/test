@@ -1,0 +1,27 @@
+/*
+msg += '\n`~test`: __How Can I Help?__ displays a list of things that need testing.';
+
+case 'test':
+	msg += '\n__Areas for Improvement__';
+	msg += '\nFunction: Displays a list of things that need testing.';
+	msg += '\nForm: `~test`';
+	break;
+*/
+
+// Areas of improvement
+else if ( firstCmd === 'test' )
+{
+	msg += 'Arenjii is a work in progress and the rules for Burning Wheel are intricate. Many interations are not explicitly clarified and I cannot claim to be an expert in the system.\nKeep an eye out to make sure my interpretation of the rules meets your expectations\nThere are some areas where I recommend extra scrutiny:';
+	  msg += '\n\t-__Rerolls__: Make sure Arenjii honours your well earned rerolls, particularly if your roll involves astrology or open-ended dice when the pool itself is not open-ended.';
+	  msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved.';
+	  msg += '\n\t-__Mixed Dice__: open-ended dice in pools that are not open-ended may be excluded from some features or behave oddly';
+
+	//-
+	/*msg += '***Murder the Gods and topple their thrones!***\nIf they cannot bear the weight of your worship they are undeserving!\nSo test your gods, beat them where they are weakest until they break.\nIf they are worthy they will come back stronger.';
+	msg += '\n\nKnown weakenesses of the White God Arenjii are:';
+	  msg += '\n\t-__Obstacle Multiplication__: Several new verses to the prayer of rolling have been uncovered, invoke them with `ox#`, `ds#` and `bl`.';
+	  msg += '\n\t-__Rerolls__: The `~fate`, `~callon` and `~grace` mantras are now functional. Make sure Un-Arenjii honours your well earned rerolls.';
+	  msg += '\n\t-__Versus Tests__: Conflicts are messy affairs, especially when Obstacle multipliers become involved. find a friend, better two, and watch Un-Arenjii squirm!';
+	  msg += '\n\t-__Mixed Dice__: open-ended dice in pools that are not open-ended may be excluded from some features or behave oddly';
+	msg += '\nReach heaven through violence.';*/
+}

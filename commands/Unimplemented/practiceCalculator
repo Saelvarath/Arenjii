@@ -1,0 +1,31 @@
+// Practice
+		else if (  firstCmd === 'practice' )
+		{
+			const catagory = {};
+			const times = { 
+						academic: [ 6, 'm', 2, 4, 8 ],
+						artistic: [ 1, 'y', 4, 8, 12 ],
+						artist: [ 6, 'm', 3, 6, 12 ],
+						craftsman: [ 1, 'y', 3, 8, 12 ],
+						forester: [ 6, 'm', 3, 6, 12 ],
+						martial: [ 1, 'm', 2, 4, 8 ],
+						medicinal: [ 1, 'y', 4, 8, 12 ],
+						military: [ 6, 'm', 2, 4, 8 ],
+						musical: [ 1, 'm', 2, 4, 8 ],
+						peasant: [ 3, 'm', 1, 4, 12 ],
+						physical: [ 1, 'm', 2, 4, 8 ],
+						sot: [ 6, 'm', 3, 6, 12 ],
+						seafaring: [ 3, 'm', 2, 4, 8 ],
+						social: [ 1, 'm', 2, 4, 8 ],
+						sorcerous: [ 1, 'y', 5, 10, 15 ],
+						special: [ 3, 'm', 3, 6, 12 ],
+						misc: [ 3, 'm', 3, 6, 12 ],
+						will: [ 1, 'y', 4, 8, 16 ],
+						perception: [ 6, 'm', 3, 6, 12 ],
+						agility: [ 3, 'm', 2, 4, 8 ],
+						speed: [ 3, 'm', 3, 6, 9 ],
+						power: [ 1, 'm', 2, 4, 8 ],
+						forte: [ 2, 'm', 4, 8, 16 ],
+						faith: [ 1, 'y', 5, 10, 20 ],
+						steel: [ 2, 'm', 1, 3, 9 ] };
+		}
