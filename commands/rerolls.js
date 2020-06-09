@@ -1,6 +1,6 @@
 module.exports = ( robot ) =>
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 	const roll = robot.utils.roll;
 
 	robot.registerHelpTopic( "grace", `__Saving Grace, Deeds Point__\nFunction: Rerolls all Traitor Dice in your previous roll. Usable once per roll.\nForm: \`${prefix}grace\`` );
@@ -86,7 +86,8 @@ module.exports = ( robot ) =>
 				else
 				{
 					prevPool.fated = true;
-					msg += reroll >= prevPool.shade ? `Traitorous ${traitorType} die converted!\n${traitor} => ${reroll}\nthat's +1 success for a total of ${++prevPool.successes}` : `Well, you tried...\nI rerolled a ${traitor} from your ${traitorType} dice but only got at ${reroll}`;
+					msg += reroll >= prevPool.shade ?	`Traitorous ${traitorType} die converted!\n${traitor} => ${reroll}\nthat's +1 success for a total of ${++prevPool.successes}` :
+														`Well, you tried...\nI rerolled a ${traitor} from your ${traitorType} dice but only got at ${reroll}`;
 				}
 			}
 			// Roll Not Open-Ended
@@ -159,7 +160,7 @@ module.exports = ( robot ) =>
 
 	robot.registerHelpLine( `\`${ prefix }grace\`: __Saving Grace, Deeds Point__ Rerolls all traitor dice, tracked separately from Call-on.` );
 	robot.registerHelpLine( `\`${ prefix }callon\`: __Call On Trait__ rerolls all traitor dice. Tracked separatetly from Saving Grace.` );
-	robot.registerCommand( /(c(?:allon|o)?|g(?:race)?)/, ( message, test ) =>
+	robot.registerCommand( /(c(?:allon|o)|grace)/, ( message, test ) =>
 	{
 		let msg = '';
 		const isCallon = test[1].toLowerCase() === 'c';

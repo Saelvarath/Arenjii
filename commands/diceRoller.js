@@ -1,6 +1,6 @@
 module.exports = (robot) =>
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 	let DicePool = robot.utils.DicePool;
 	const roll = robot.utils.roll;
 
@@ -39,12 +39,13 @@ module.exports = (robot) =>
 					case 'as':  // Astrology
 						if ( amount !== 0 && currPool.astroDice === 0)
 						{
-							currPool.astroDice++;
+							currPool.astroDice += amount;
+							/*currPool.astroDice++;
 							
 							if ( amount >= 5 )
 							{
 								currPool.astroDice++;
-							}
+							}*/
 						}
 						break;
 					case 'ar':
@@ -175,7 +176,7 @@ module.exports = (robot) =>
 		}
 		
 		// Roll Exponent dice
-		for ( d = 0; d < Number( currPool.exponent ) + Number( currPool.arthaDice ); d++ )
+		for ( d = 0; d < Number( currPool.exponent ) + Number( currPool.arthaDice ) + Number( currPool.nonArtha ); d++ )
 		{
 			let r = roll();
 			
@@ -207,7 +208,8 @@ module.exports = (robot) =>
 			
 			robot.rollMap.set( message.channel.id, vsRolls );
 			
-			message.channel.send( `${currPool.reps === 0 ? currPool.owner.username : currPool.owner.username + ' ' + currPool.reps} added a roll to the VS pile.` );
+			message.channel.send( `${currPool.reps === 0 ?	currPool.owner.username : 
+															currPool.owner.username + ' ' + currPool.reps} added a roll to the VS pile.` );
 		}
 		
 		// Output
@@ -253,10 +255,6 @@ Notes:
 	robot.registerHelpTopic( "roll", rollHelpTopic );
 
 };
-
-{
-	
-}
 
 /*Greed: 
 - Aids or hinders Resource tests

@@ -3,7 +3,7 @@ const config = require( './config.json' );
 
 const path = require('path');
 const Robot = require("./robot");
-const Enmap = require('enmap');
+//const Enmap = require('enmap');
 
 
 // Initialize Discord Bot

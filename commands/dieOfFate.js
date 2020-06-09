@@ -1,6 +1,6 @@
 module.exports = (robot) =>
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 	let dofTopic = `__Die of Fate__
 Function: Rolls a single die.
 Form: \`${prefix}dof\` {tags}

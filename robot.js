@@ -1,7 +1,7 @@
 const fs = require("fs")
 const path = require("path")
 const config = require("./config.json");
-const prefixes = [ config.prefix, config.prefix2 ].map( ( prefix ) => prefix.replace( /[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&' ) );
+const prefixes = config.prefixes.map( ( prefix ) => prefix.replace( /[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&' ) );
 const RDC = require("./rdc")
 
 const DicePool = require("./dicePool");
@@ -9,7 +9,7 @@ const DicePool = require("./dicePool");
 const EventEmitter = require("events").EventEmitter;
 //const Enmap = require("enmap");
 
-//console.log(prefixes);
+console.log(prefixes);
 
 class Robot extends EventEmitter
 {
@@ -48,6 +48,16 @@ class Robot extends EventEmitter
 			
 			if ( test )
 			{
+				// Log
+				fs.appendFile( 'logFile.txt', `\n@${message.author.username},\t\t#${message.channel.name}\t\t\t${message.content}`, function (err) 
+				{
+					if ( err !== null )
+					{
+						console.log(`File Error -> ${err}`);
+						throw err;
+					}
+				});
+				
 				command( message, test );
 			}
 		})

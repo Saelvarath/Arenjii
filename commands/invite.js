@@ -1,7 +1,9 @@
 module.exports = ( robot ) =>
 {
-	robot.registerHelpTopic( "invite", `__Invite Arenjii to your Server__\nFunction: hands out the link that allows you to add this bot to your own game.\n\nForm: \`${robot.config.prefix}invite\`` );
-	robot.registerCommand( /(?:invite)/, `\`${robot.config.prefix}invite\` __Invite Arenjii__ Receive the link that will allow you to add the bot to your server.`, ( message, test ) =>
+	let prefix = robot.config.printedPrefix
+
+	robot.registerHelpTopic( "invite", `__Invite Arenjii to your Server__\nFunction: hands out the link that allows you to add this bot to your own game.\n\nForm: \`${prefix}invite\`` );
+	robot.registerCommand( /(?:invite)/, `\`${prefix}invite\` __Invite Arenjii__ Receive the link that will allow you to add the bot to your server.`, ( message, test ) =>
 	{
 		const inviteEmbed = 
 		{

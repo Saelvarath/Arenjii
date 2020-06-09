@@ -25,7 +25,7 @@ module.exports = ( robot ) =>
 		rollCount[roll]++;
 	});
 
-	robot.registerCommand( /stats/i, `\`${ robot.config.prefix }stats\` prints out dice statistics`, ( message ) => 
+	robot.registerCommand( /stats/i, `\`${ robot.config.printedPrefix }stats\` prints out dice statistics`, ( message ) => 
 	{
 		// console.log(rolls);
 		// console.log(rollCount);

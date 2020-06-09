@@ -11,31 +11,31 @@ class DicePool
 	{
 		this.arthaDice = 0;			// number of dice added through spending Artha
 		this.astroDice = 0;			// number of dice added through Astrology FoRK
-		this.astroPool = [];			// results of astrological FoRKs/Help
-		this.astroResult = 0;		  // Successes gained or lost through Astrology
+		this.astroPool = [];		// results of astrological FoRKs/Help
+		this.astroResult = 0;		// Successes gained or lost through Astrology
 		this.beginnersLuck = false;	// do you actually have the right skill for the job?
-		this.booned = 0;				// How many Persona Points have been spent on this roll?
+		this.booned = 0;			// How many Persona Points have been spent on this roll?
 		this.basePool = [];			// array of dice results, includes FoRKs, Artha Dice, Advantage Dice
-		this.calledOn = false;		 // if a Call-on Trait has been used on this roll.
-		this.exponent = 0;			 // BASE number of dice rolled, Exponent of the roll.
+		this.calledOn = false;		// if a Call-on Trait has been used on this roll.
+		this.exponent = 0;			// BASE number of dice rolled, Exponent of the roll.
 		this.fated = false;			// if a Fate point has been spent on this roll
-		this.graced = false;			// if a Saving Grace has been employed on this roll
-		this.helperDice = 0;			// number of dice added by helpers
-		this.helperExponent = [];	  // the exponent of your helpers
-		this.helperPool = [];		  // how much your companions 'helped' you
+		this.graced = false;		// if a Saving Grace has been employed on this roll
+		this.helperDice = 0;		// number of dice added by helpers
+		this.helperExponent = [];	// the exponent of your helpers
+		this.helperPool = [];		// how much your companions 'helped' you
 		this.openEndedDice = 0;		// how many dice or independantly open-ended (before explosions)
-		this.openEndedPool = [];		// dice that are open ended regardless of the base roll
-		this.inspired = false;		 // has Divine Inspiration struck this roll?
-		this.isOpenEnded = false;	  // do dice explode?
-		this.nonArtha = 0;			 // the number of non-artha dice added to the roll
-		this.ObAddition = 0;			// added to Base Obstacle after it's multiplied
-		this.ObMultiplier = 1;		 // for all you double Ob needs.
-		this.obstacle = 0;			 // BASE obstacle of the roll
-		this.owner = 'Hugh Mann';	  // Who rolled the dice
-		this.reps = 0;				 // rank in the VS Stack
+		this.openEndedPool = [];	// dice that are open ended regardless of the base roll
+		this.inspired = false;		// has Divine Inspiration struck this roll?
+		this.isOpenEnded = false;	// do dice explode?
+		this.nonArtha = 0;			// the number of non-artha dice added to the roll
+		this.ObAddition = 0;		// added to Base Obstacle after it's multiplied
+		this.ObMultiplier = 1;		// for all you double Ob needs.
+		this.obstacle = 0;			// BASE obstacle of the roll
+		this.owner = 'Hugh Mann';	// Who rolled the dice
+		this.reps = 0;				// rank in the VS Stack
 		this.shade = 4;				// shade of the roll, 4 = black, 3 = grey, 2 = white
 		this.successes = 0;			// the number of successes gained through rolls
-		this.totalRolled = 0;		  // how many dice ultimately end up being rolled (before explosions)
+		this.totalRolled = 0;		// how many dice ultimately end up being rolled (before explosions)
 	}
 	/**
 	 * @returns {number}
@@ -120,26 +120,10 @@ class DicePool
   // DiePool.printPool()
 	printPool()
 	{
-		let msg = `${this.owner} rolled ${this.totalRolled}`;
-
-	  // determine shade
-		switch ( this.shade )
-		{
-			case 4:
-				msg += ' Black ';	break;
-			case 3:
-				msg += ' Grey ';	break;
-			case 2:
-				msg += ' White ';	break;
-		}
-
-		msg += this.isOpenEnded ? 'Open-Ended dice' : 'shaded dice';
-
-		msg += this.beginnersLuck ? ", Beginner's Luck," : '';
-
-		msg += this.obstacle > 0 ? ` against an Ob of ${this.obstacle * this.ObMultiplier + this.ObAddition}` : '';
-
-		msg += this.ObMultiplier > 1 && this.obstacle > 0 ? ` [${this.obstacle}*${this.ObMultiplier}+${this.ObAddition}].` : '.';
+		let msg = `${this.owner} rolled ${this.totalRolled} ${[ 0, 0, 'White', 'Grey', 'Black' ][ this.shade ]} ${this.isOpenEnded ? 'Open-Ended' : 'shaded'} dice`;
+		msg += `${this.beginnersLuck ? `, Beginner's Luck,` : ``}`;
+		msg += `${this.obstacle > 0 ? ` against an Ob of ${this.obstacle * this.ObMultiplier + this.ObAddition}` : ''}`;
+		msg += `${this.ObMultiplier > 1 && this.obstacle > 0 ? ` [${this.obstacle}*${this.ObMultiplier}${this.ObAddition != 0 ? `+${this.ObAddition}` : ``}].` : '.'}`;
 
 	  // print base dice
 		if ( this.basePool.length )
@@ -149,11 +133,8 @@ class DicePool
 			//-msg += '\nActual roll: {' + this.basePool.toString() + '}';
 		}
 
-	  //+ Independently Open-Ended dice
-		if ( this.openEndedDice > 0 )
-		{
-			msg += `\nOpen-Ended: ${diceSugar( this.openEndedPool, this.shade, 1)}`;
-		}
+	  // Independently Open-Ended dice
+		msg += this.openEndedDice > 0 ? `\nOpen-Ended: ${diceSugar( this.openEndedPool, this.shade, 1)}` : '';
 
 	  // determine helper test difficulty
 		for ( let helper = 0; helper < this.helperPool.length; helper++ )
@@ -171,7 +152,7 @@ class DicePool
 	  // tally & output astrology results
 		if ( this.astroDice > 0 )
 		{
-			msg += `\nFortune Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`
+			msg += `\nFortune Dice: ${diceSugar( this.astroPool, this.shade, 2 )}`;
 			msg += `\nThe Stars were ${this.astroResult > 0 ? 'right' : 'wrong'} and their fate gives them ${this.astroResult} success this roll`;
 		}
 
@@ -181,29 +162,20 @@ class DicePool
 
 		if ( this.obstacle > 0 )
 		{
-			msg += totesSuccessess >= totesObstacle ? `\nThats a success with a margin of ${totesSuccessess - totesObstacle} and they got to mark off a ` : `\nTraitorous dice! Thats a *failure* of ${totesObstacle - totesSuccessess}...\nAt least they got to mark off a `;
+			msg += totesSuccessess >= totesObstacle ?	`\nThats a success with a margin of ${totesSuccessess - totesObstacle} and they got to mark off a` : 
+														`\nTraitorous dice! Thats a *failure* of ${totesObstacle - totesSuccessess}... \nAt least they got a`;
 
 			let bl = RDC( this.exponent + this.nonArtha + this.astroDice + this.helperDice, this.obstacle + this.ObAddition );
 
-			if ( this.beginnersLuck )
-			{
-				msg += bl === 'Routine' ? 'test towards learning a **new Skill**!' : `${bl} test towards advancing their **Root Stat**!`;
-			}
-			else
-			{
-				msg += `${bl} test.`;
-			}
+			msg += this.beginnersLuck ?		bl === 'Routine' ?	`n Advance towards learning a **new Skill**!` :
+																` ${bl} test towards their **Root Stat**!` :
+										` ${bl} test.`;
 		}
 		else
 		{
-			if ( this.ObMultiplier > 1 )
-			{
-				msg += `\nThat's ${totesSuccessess} in total and effective success of ${Math.floor( ( totesSuccessess - this.ObAddition ) / this.ObMultiplier )} on a graduated test.`;
-			}
-			else
-			{
-				msg += totesSuccessess > 0 ? `\nThats ${totesSuccessess} succes${totesSuccessess === 1 ? 's' : 'es'}!` : '\nNo successes? looks like things are about to get interesting!';
-			}
+			msg += this.ObMultiplier > 1 ?	`\nThat's ${totesSuccessess} in total and effective success of ${Math.floor( ( totesSuccessess - this.ObAddition ) / this.ObMultiplier )} on a graduated test.` :
+											totesSuccessess > 0 ?	`\nThats ${totesSuccessess} succes${totesSuccessess === 1 ? 's' : 'es'}!` :
+																	'\nNo successes? looks like things are about to get interesting!';
 		}
 		return msg;
 	}
@@ -212,65 +184,44 @@ class DicePool
 // WARNING: Illegible mess.
 function diceSugar( pool, shade, open )
 {
-	let msg = '[';
+	// bold			 = success
+	// underline	 = explosion chain
+	// strikethrough = implosion chain
 
-	if ( Array.isArray( pool ) )
+	function mapper ( val, ind, arr )
 	{
-	  // for each element
-		for ( let d = 0; d < pool.length; d++ )
-		{
-		  // iterate through N dimentional arrays
-			if ( Array.isArray( pool[d] ) )
-			{
-				msg += diceSugar( pool[d], shade, open );
-			}
-		  // if dice explode
-			else if ( open != 0 && ( pool[d] === 6 || pool[d] === 1 ) )
-			{
-				if ( pool[d]  === 6 )
-				{
-					msg += ( d === 0 ? `__**${pool[d]}` : `, __**${pool[d]}` );
+		let r = ``;
+		let prevVal = arr[ ind - 1 ];
+		
+	  //prefixes
+		//start Explosion
+		if ( open > 0 && val == 6 && prevVal !== 6 & prevVal !== 1 )
+		{	r += `__`;	}
+		
+		//start Implosion
+		if ( open == 2 && val == 1 && prevVal !== 1 )
+		{	r += `~~`;	}
+		
+	  //Value
+		r += val >= shade ? `**${val}**` : val;
+		
+	  //postfixes
+		//end Implosion
+		if ( open == 2 && prevVal === 1 && arr[ ind - 2 ] !== 1 )
+		{	r += `~~`;	}
 
-					while ( pool[d + 1] === 6 )
-					{
-						msg += `, ${pool[++d]}`;
-					}
-
-					if ( open == 2 && pool[d + 1] === 1 )
-					{
-						msg += `**, ~~${pool[++d]}, ${pool[++d]}~~`;
-					}
-					else
-					{
-						msg += ( pool[++d] >= shade ? `, ${pool[d]}**` : `**, ${pool[d]}`);
-					}
-
-					msg += '__';
-				}
-			  // if 1s explode
-				else if ( open == 2 && pool[d] ===1 && d != pool.length )
-				{
-					msg += ( d === 0 ? `~~${pool[d]}, ${pool[++d]}~~` : `, ~~${pool[d]}, ${pool[++d]}~~` );
-				}
-			  // if 1s don't explode
-				else
-				{
-					msg += ( d === 0 ? pool[d] : `, ${pool[d]}` );
-				}
-			}
-			else if ( pool[d] >= shade )
-			{
-				msg += ( d === 0 ? `**${pool[d]}**` : `, **${pool[d]}**` );
-			}
-			else
-			{
-				msg += ( d === 0 ? pool[d] : `, ${pool[d]}` );
-			}
-	  }
-	  msg += ']';
+		//end Explosion
+		if ( open == 2 && prevVal === 6 && val != 6 && val != 1 )
+		{	r += `__`;	}
+		else if ( open == 2 && prevVal === 1 && arr[ind-2] === 6 )
+		{	r += `__`;	}
+		else if ( open == 1 && prevVal === 6 && val != 6 )
+		{	r += `__`;	}
+		
+		return r;
 	}
-
-	return msg;
+	
+	return `[${ pool.map( mapper ).join( ", " ) }]`;
 }
 
 module.exports = DicePool

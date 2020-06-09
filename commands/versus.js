@@ -1,6 +1,6 @@
 module.exports = ( robot ) =>
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 
 	const vsHelpTopic = `__Versus Test__
 Function: Compares rolls. Which rolls are compared depends on how many mentions follow the command.
@@ -124,7 +124,8 @@ W + W + G 	= G.
 					let totalOb = contestant.obstacle * contestant.ObMultiplier + contestant.ObAddition;
 					let totalPool = contestant.exponent + contestant.nonArtha + contestant.astroDice + contestant.helperDice;
 
-					msg += `\n${contestant.reps === 0 ? contestant.owner : `**${contestant.owner.username} ${contestant.reps}**`} rolled ${totalSuc} against an Ob of ${totalOb}`;
+					msg += `\n${contestant.reps === 0 ?	contestant.owner : 
+														`**${contestant.owner.username} ${contestant.reps}**`} rolled ${totalSuc} against an Ob of ${totalOb}`;
 
 					if ( contestant.ObMultiplier > 1 || contestant.ObAddition > 0 )
 					{
@@ -139,16 +140,19 @@ W + W + G 	= G.
 
 						if ( testDiff === 'Routine' )
 						{
-							msg += totalSuc >= totalOb ? `, passing by ${totalSuc - totalOb} and showing Aptitude for a **new Skill**` : `, failing, but advancing towards a **new Skill**`;
+							msg += totalSuc >= totalOb ?	`, passing by ${totalSuc - totalOb} and showing Aptitude for a **new Skill**` :
+															`, failing, but advancing towards a **new Skill**`;
 						}
 						else
 						{
-							msg += totalSuc >= totalOb ? `, passing a ${testDiff} test for the **Root Stat** by ${totalSuc - totalOb}` : `, failing a ${testDiff} test for the **Root Stat**`;
+							msg += totalSuc >= totalOb ?	`, passing a ${testDiff} test for the **Root Stat** by ${totalSuc - totalOb}` :
+															`, failing a ${testDiff} test for the **Root Stat**`;
 						}
 					}
 					else
 					{
-						msg += totalSuc >= totalOb ? `, passing a ${RDC( totalPool, totalOb )} test by ${totalSuc - totalOb}` : `, failing a ${RDC( totalPool, totalOb )} test`;
+						msg += totalSuc >= totalOb ?	`, passing a ${RDC( totalPool, totalOb )} test by ${totalSuc - totalOb}` :
+														`, failing a ${RDC( totalPool, totalOb )} test`;
 					}
 
 					robot.rollMap.set( contestant.owner, contestant )

@@ -1,6 +1,6 @@
 module.exports = (robot) =>
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 
 	const diffHelpTopic = `__Difficulty Calculator__
 Function: Returns if a test is Routine, Difficult or Challenging.

@@ -1,6 +1,6 @@
 module.exports = (robot) => 
 {
-	const prefix = robot.config.prefix;
+	const prefix = robot.config.printedPrefix;
 
 	const helpHelptopic = `__Bot Manual__
 Function: displays information about Arenjii\'s various uses.

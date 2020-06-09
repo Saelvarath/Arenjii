@@ -1,27 +1,26 @@
 {
-  "name": "arenjii",
-  "version": "1.0.0",
-  "dependencies": {
-	"discord.js": "^11.4.2",
-	"enmap": "^2.7.2"
-  },
-  "license": "ISC",
-  "scripts": {
-	"start": "node bot.js",
-	"test": "mocha"
-  },
-  "author": "Saelvarath",
-  "repository": {
-	"type": "git",
-	"url": "https://github.com/Saelvarath/Arenjii.git"
-  },
-  "description": "A Discord dice roller bot for Luke Crane's Burning Wheel.",
-  "keywords": [
-	"Burning Wheel",
-	"Discord",
-	"Dice Roller"
-  ],
-  "devDependencies": {
-	"mocha": "^7.1.1"
-  }
+ "name": "arenjii",
+ "version": "1.0.0",
+ "dependencies": {
+  "discord.js": "^11.4.2"
+ },
+ "license": "ISC",
+ "scripts": {
+  "start": "node bot.js",
+  "test": "mocha"
+ },
+ "author": "Saelvarath",
+ "repository": {
+  "type": "git",
+  "url": "https://github.com/Saelvarath/Arenjii.git"
+ },
+ "description": "A Discord dice roller bot for Luke Crane's Burning Wheel.",
+ "keywords": [
+  "Burning Wheel",
+  "Discord",
+  "Dice Roller"
+ ],
+ "devDependencies": {
+  "mocha": "^7.1.1"
+ }
 }
