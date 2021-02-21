@@ -13,12 +13,12 @@ You can also get this link by giving the bot the `~invite` command
 Once you have access to a working instance of the bot
 Commands to trigger the bot are prefixed with a character set in the config file*.
 My version uses `~` or `\`.
-Eg: `~callon` or `\b4!`
-
-* you will have to make your own config.json file if you want to run your own version of the bot. See below.
+>Eg: `~callon` or `\b4!`
 
 To start out try the `help` command to get a list of all commands the bot recognises. you can get more in-depth information on an individual command by adding it to the end of a `help` command
-Eg: `\help roll`
+>Eg: `\help roll`
+
+__*__ You will have to make your own config.json file if you want to run your own version of the bot. See below.
 
 ## How can I help?
 
@@ -30,8 +30,9 @@ If you are not a developer, I could always use people dedicated and/or crazy eno
 
 ## Config.json
 create a file named 'config.json' in the project folder and paste the code below into it:
-`{
-	"token": "__Your Discord Bot Token Here__",
-	"prefixes": [ "~", "\\" ],
-	"_prefixes": "you can add or remove characters to the line above. Also: delete this line",
-}`
+>{  
+>	"token": "__Your Discord Bot Token Here__",  
+>	"prefixes": [ "~", "\\" ],  
+>	"_prefixes": "You can add or remove characters to the line above. Also: delete this line",  
+>	"boss": "__Optional. Your Discord user ID here. For use in the Feedback command__"  
+>}
