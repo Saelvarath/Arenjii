@@ -1,0 +1,5 @@
+module.exports = (robot) =>
+{
+    robot.registerGuide( "blank", "blank guide is blank");
+    robot.registerGuide( "", "");
+}

@@ -1,0 +1,22 @@
+/*
+
+module.exports = (robot) =>
+{	
+	let prefix = robot.config.prefix;
+
+	let ___Topic = `__Title__
+Function:
+Form: \`${robot.config.prefix}Invocation\` {tags}
+Extra Tags
+	\`tag\` description
+Notes:`
+
+
+	robot.registerHelpTopic( /__HelpRegEx/i, ___Topic );
+	robot.registerCommand( /___PrayerRegEx_/i, `\`${prefix}___Invocation {tags}\`: __Name__ description.`, ( message, test ) =>
+	{
+	});
+
+}
+
+*/

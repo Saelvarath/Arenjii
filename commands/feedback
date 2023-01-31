@@ -1,0 +1,30 @@
+/*module.exports = (robot) =>
+{	
+
+    let prefix = robot.config.prefix;
+	let feedbackTopic = `__Send Feedback__
+Function: gives you a direct line to the developer; report bugs, make suggestions, express gratitude!
+Form: \`${prefix}feedback {Message}\`
+Extra Tags
+	\`Message\` type anything!
+Notes: please don't spam me.`;
+
+
+	robot.registerHelpTopic( /feedback/i, feedbackTopic );
+	robot.registerCommand( /feedback\s+(.+)/i, `\`${prefix}feedback {Message}\`: __Send Feedback__ Send the developer a piece of your mind.`, ( message, test ) =>
+	{
+		//+don't have access to the client from here
+        let boss = client.users.get( config.boss );
+
+			if ( boss == undefined )
+			{
+				message.author.send("I can't find the boss...");
+			}
+			else
+			{
+				boss.send( message.content );
+				message.author.send(`Message sent. Thank you.`);
+			}
+	});
+
+}*/
