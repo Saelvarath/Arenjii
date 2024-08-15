@@ -1,0 +1,20 @@
+Privacy Policy
+
+This bot keeps a log file of all commands interpreted, along with usernames and date/time.
+
+Like this:
+
+----------Booted up Mon, 20 Jun 2022 19:46:20 GMT----------
+@Saelvarath,								~b5 oe5
+@Saelvarath,								~co
+@Saelvarath,								~b0! he9 he9 he9 he9 he9
+@Saelvarath,								~b99!
+
+----------Booted up Mon, 20 Jun 2022 19:51:11 GMT----------
+@Saelvarath,								~b5! oe5
+@Saelvarath,								~grace
+
+I promise only to use any information the bot collects for debugging purposes.
+If you don't like that I have your information I'll remove it from the logfile if you ask, you can use the ~feedback command to send me a message, but honestly that just draws attention to it. if you don't point it out I'm never going to notice it.
+
+https://en.wikipedia.org/wiki/Streisand_effect
