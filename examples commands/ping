@@ -1,0 +1,32 @@
+const { SlashCommandBuilder } = require( 'discord.js' );
+const wait = require( 'node:timers/promises' ).setTimeout;
+
+module.exports = {
+	category: 'Utility',
+	cooldown: 4,
+
+	data: new SlashCommandBuilder()
+		.setName( 'ping' )
+		.setDescription( 'Replies with Pong!' ),
+
+	async execute( interaction ) {
+		//editing messages and follow up messages
+		await interaction.reply( 'Pang!' );
+		const message = await interaction.fetchReply();
+		console.log( message.interaction.commandName );
+		await wait( 5000 );
+		await interaction.editReply( 'I meant \'Pong!\'' );/**/
+		await wait( 5000 );
+		await interaction.followUp( 'Pong!' )
+		await interaction.deleteReply();
+		//await interaction.followUp( { content: 'Secret Pang!', ephemeral: true } ); //only command sender can see this
+		
+		//deferred responce
+		/*await interaction.deferReply();
+		//await interaction.deferReply( { ephemeral: true } ); //deferred ephemeral responce
+		await wait( 4_000 );
+		await interaction.editReply( 'deferred Pong!' );/**/
+
+
+	},
+};
