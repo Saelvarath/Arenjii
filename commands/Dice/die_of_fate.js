@@ -29,6 +29,6 @@ module.exports = {
 		const plus = interaction.options.getInteger( 'plus' ) ?? 0;
 		const minus = interaction.options.getInteger( 'minus' ) ?? 0;
 		
-		await interaction.reply( `You rolled ${ 1 + result }, for a total of ${ 1 + result + plus - minus }!` ) ;
+		await interaction.reply( `You rolled ${ result }, for a total of ${ result + plus - minus }!` ) ;
 	}
 };
